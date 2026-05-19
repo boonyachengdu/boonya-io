@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: boonya-io-minio
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+# MinIO配置
+minio:
+  endpoint: http://localhost:9000        # MinIO API地址
+  access-key: minioadmin                 # 访问密钥
+  secret-key: minioadmin                 # 秘密密钥
+  bucket-name: my-bucket                 # 桶名称

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IoT监控看板</title>
+    <script src="https://cdn.sockjs.org/sockjs-1.6.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<body>
+<h1>设备告警实时看板</h1>
+<div id="alerts" style="background: #f0f0f0; padding: 20px; height: 400px; overflow: auto;"></div>
+<script>
+    var socket = new SockJS('/ws');
+    var stompClient = Stomp.over(socket);
+    stompClient.connect({}, function() {
+        stompClient.subscribe('/topic/alerts', function(message) {
+            var alert = JSON.parse(message.body);
+            var div = document.getElementById('alerts');
+            div.innerHTML = '<div style="color:red">' + alert.message + '</div>' + div.innerHTML;
+        });
+    });
+</script>
+</body>
+</html>
