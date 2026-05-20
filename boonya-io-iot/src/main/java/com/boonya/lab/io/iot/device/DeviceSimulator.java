@@ -1,47 +1,55 @@
 package com.boonya.lab.io.iot.device;
 
-import jakarta.annotation.PostConstruct;
-import org.eclipse.paho.client.mqttv3.MqttClient;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.springframework.beans.factory.annotation.Value;
+import com.boonya.lab.io.iot.mqtt.MqttClientWrapper;
+import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class DeviceSimulator {
-    @Value("${mqtt.broker: tcp://localhost:1883}")
-    private String broker;
 
-    @PostConstruct
+    private final MqttClientWrapper mqttClientWrapper;
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(100);
+    private static final int DEVICE_COUNT = 100;
+
+    @EventListener(ApplicationReadyEvent.class)
     public void simulate() {
-        for (int i = 1; i <= 100; i++) {
+        log.info("Starting device simulation with {} devices", DEVICE_COUNT);
+        for (int i = 1; i <= DEVICE_COUNT; i++) {
             String deviceId = "sensor_" + i;
-            try {
-                startDevice(deviceId);
-            } catch (MqttException e) {
-                throw new RuntimeException(e);
-            }
+            startDevice(deviceId);
         }
     }
 
-    private void startDevice(String deviceId) throws MqttException {
-        MqttClient client = new MqttClient(broker, deviceId);
-        client.connect();
-
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    private void startDevice(String deviceId) {
         executor.scheduleAtFixedRate(() -> {
-            double temp = 20 + Math.random() * 15; // 20-35度
-            String payload = String.format("{\"temp\": %.2f, \"ts\": %d}", temp, System.currentTimeMillis());
-            MqttMessage message = new MqttMessage(payload.getBytes());
             try {
-                client.publish("device/" + deviceId + "/telemetry", message);
-            } catch (MqttException e) {
-                throw new RuntimeException(e);
+                double temp = 20 + Math.random() * 15;
+                if (Math.random() < 0.1) {
+                    temp = 30 + Math.random() * 10;
+                }
+                long ts = System.currentTimeMillis();
+                String payload = String.format("{\"temp\": %.2f, \"ts\": %d}", temp, ts);
+
+                mqttClientWrapper.publish("device/" + deviceId + "/telemetry", payload.getBytes(), 1);
+                log.debug("Device {} sent: {:.2f}℃", deviceId, temp);
+            } catch (Exception e) {
+                log.error("Failed to send data for device {}", deviceId, e);
             }
         }, 0, 5, TimeUnit.SECONDS);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        executor.shutdown();
     }
 }

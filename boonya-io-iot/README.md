@@ -17,3 +17,54 @@
 ```bash
 docker run -d --name emqx -p 1883:1883 -p 18083:18083 emqx/emqx:latest
 ```
+
+# 方式一：启动所有服务
+```bash
+# 构建并启动所有服务
+docker-compose up -d
+
+# 查看启动日志
+docker-compose logs -f
+
+# 只查看 Spring Boot 应用日志
+docker-compose logs -f spring-app
+
+```
+
+# 方式二：仅启动基础设施
+
+```bash
+# 启动基础服务（EMQX, TDengine, Redis, MinIO）
+docker-compose up -d emqx tdengine redis minio
+
+# 查看服务状态
+docker-compose ps
+```
+
+# 访问地址
+服务启动后，可以通过以下地址访问：
+
+```
+Spring Boot 应用	http://localhost:8080	API 接口
+EMQX Dashboard	http://localhost:18083	MQTT 管理后台（admin/public）
+MQTT Broker	tcp://localhost:1883	MQTT 连接地址
+MinIO Console	http://localhost:9001	对象存储管理（minioadmin/minioadmin）
+MinIO API	http://localhost:9000	对象存储 API
+TDengine	jdbc:TAOS://localhost:6030/iot	时序数据库
+Redis	localhost:6379	缓存数据库
+```
+
+# 测试MQTT连接
+
+```
+# 使用 curl 测试 WebSocket
+curl http://localhost:8080/device/list
+
+# 或使用 MQTT 客户端工具（如 MQTT.fx、MQTT Explorer）
+# 连接地址: tcp://localhost:1883
+# 订阅主题: device/+/telemetry
+
+```
+# 查看设备告警
+
+浏览器打开：http://localhost:8080/ws（WebSocket 实时告警页面）

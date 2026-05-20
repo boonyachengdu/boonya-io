@@ -24,7 +24,7 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Nacos 服务发现 + 配置 -->
+<!--        &lt;!&ndash; Nacos 服务发现 + 配置 &ndash;&gt;
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
@@ -34,17 +34,17 @@
             <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
         </dependency>
 
-        <!-- 负载均衡 -->
+        &lt;!&ndash; 负载均衡 &ndash;&gt;
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-loadbalancer</artifactId>
         </dependency>
 
-        <!-- OpenFeign -->
+        &lt;!&ndash; OpenFeign &ndash;&gt;
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
-        </dependency>
+        </dependency>-->
 
         <!-- lombok -->
         <dependency>
@@ -96,11 +96,18 @@
         </dependency>
 
         <!-- MinIO -->
-<!--        <dependency>
+        <dependency>
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
             <version>8.5.17</version>
-        </dependency>-->
+        </dependency>
+
+        <!-- TDengine JDBC Driver -->
+        <dependency>
+            <groupId>com.taosdata.jdbc</groupId>
+            <artifactId>taos-jdbcdriver</artifactId>
+            <version>3.2.5</version>
+        </dependency>
 
         <!-- Utils -->
         <dependency>

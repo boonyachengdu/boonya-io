@@ -1,12 +1,32 @@
 spring:
   application:
     name: boonya-io-iot
+  # 移除 Nacos 相关配置（如果不需要微服务）
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+      config:
+        enabled: false
   redis:
     host: localhost
     port: 6379
 
+  # TDengine 配置
+  datasource:
+    url: jdbc:TAOS://tdengine:6030/iot
+    username: root
+    password: taosdata
+    driver-class-name: com.taosdata.jdbc.TSDBDriver
 mqtt:
-  broker: tcp://localhost:1883
+  broker:
+    # 可选值: embedded 或 emqx
+    type: embedded
+    # 嵌入式配置
+    embedded-port: 1883
+    allow-anonymous: true
+    # 外部EMQX配置（type=emqx时生效）
+    host: tcp://localhost:1883
 
 minio:
   endpoint: http://localhost:9000
