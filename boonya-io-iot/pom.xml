@@ -102,11 +102,11 @@
             <version>8.5.17</version>
         </dependency>
 
-        <!-- TDengine JDBC Driver -->
+        <!-- TDengine JDBC Driver (REST API 版本，无需本地库) -->
         <dependency>
             <groupId>com.taosdata.jdbc</groupId>
             <artifactId>taos-jdbcdriver</artifactId>
-            <version>3.2.5</version>
+            <version>3.2.7</version>
         </dependency>
 
         <!-- Utils -->
@@ -119,15 +119,6 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
-
-        <!-- TDengine JDBC Driver (REST API 版本，无需本地库) -->
-        <dependency>
-            <groupId>com.taosdata.jdbc</groupId>
-            <artifactId>taos-jdbcdriver</artifactId>
-            <version>3.2.5</version>
-        </dependency>
-
-        <!-- Utils -->
 
 
     </dependencies>

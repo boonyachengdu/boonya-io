@@ -28,6 +28,7 @@ public class EmqxClientConfig {
         options.setCleanSession(true);
         options.setConnectionTimeout(10);
         options.setKeepAliveInterval(60);
+        options.setMaxInflight(1000);
 
         client.connect(options);
         log.info("Connected to external EMQX at {}", brokerProperties.getHost());

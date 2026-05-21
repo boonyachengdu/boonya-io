@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 public class DeviceSimulator {
 
     private final MqttClientWrapper mqttClientWrapper;
-    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(100);
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(10);
     private static final int DEVICE_COUNT = 100;
 
     @EventListener(ApplicationReadyEvent.class)
@@ -31,6 +31,7 @@ public class DeviceSimulator {
     }
 
     private void startDevice(String deviceId) {
+        long initialDelay = (long) (Math.random() * 10);
         executor.scheduleAtFixedRate(() -> {
             try {
                 double temp = 20 + Math.random() * 15;
@@ -45,7 +46,7 @@ public class DeviceSimulator {
             } catch (Exception e) {
                 log.error("Failed to send data for device {}", deviceId, e);
             }
-        }, 0, 5, TimeUnit.SECONDS);
+        }, initialDelay, 10, TimeUnit.SECONDS);
     }
 
     @PreDestroy
