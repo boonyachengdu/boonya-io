@@ -5,6 +5,7 @@ import io.moquette.broker.config.IConfig;
 import io.moquette.broker.config.MemoryConfig;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -19,6 +20,7 @@ import java.util.Properties;
 public class EmbeddedMqttBroker {
 
     private final MqttBrokerProperties brokerProperties;
+    @Getter
     private Server mqttBroker;
 
     @PostConstruct
@@ -36,11 +38,8 @@ public class EmbeddedMqttBroker {
             log.info("Embedded MQTT Broker started on port {}", brokerProperties.getEmbeddedPort());
         } catch (Exception e) {
             log.error("Failed to start Embedded MQTT Broker", e);
+            throw new RuntimeException("Failed to start MQTT Broker", e);
         }
-    }
-
-    public Server getMqttBroker() {
-        return mqttBroker;
     }
 
     @PreDestroy

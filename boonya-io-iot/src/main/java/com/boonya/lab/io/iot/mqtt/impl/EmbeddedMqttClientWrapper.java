@@ -16,6 +16,8 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -25,12 +27,13 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @ConditionalOnBean(EmbeddedMqttBroker.class)
 @RequiredArgsConstructor
-public class EmbeddedMqttClientWrapper implements MqttClientWrapper {
+public class EmbeddedMqttClientWrapper implements MqttClientWrapper, ApplicationListener<ContextRefreshedEvent> {
 
     private final EmbeddedMqttBroker embeddedMqttBroker;
     private final MqttBrokerProperties brokerProperties;
     private final Map<String, MessageHandler> handlers = new ConcurrentHashMap<>();
     private MqttClient internalClient;
+    private boolean interceptorRegistered = false;
 
     @PostConstruct
     public void init() {
@@ -43,6 +46,7 @@ public class EmbeddedMqttClientWrapper implements MqttClientWrapper {
             options.setAutomaticReconnect(true);
             options.setCleanSession(true);
             options.setConnectionTimeout(10);
+            options.setMaxInflight(1000);
 
             internalClient.connect(options);
             log.info("Internal MQTT client connected to embedded broker at {}", brokerUrl);
@@ -51,28 +55,43 @@ public class EmbeddedMqttClientWrapper implements MqttClientWrapper {
             throw new RuntimeException("Failed to initialize embedded MQTT client", e);
         }
 
-        // 注册拦截器处理订阅消息（仅使用拦截器机制，不需要双重订阅）
-        embeddedMqttBroker.getMqttBroker().addInterceptHandler(new AbstractInterceptHandler() {
-            @Override
-            public String getID() {
-                return "embedded-mqtt-client-wrapper";
-            }
-
-            @Override
-            public void onPublish(InterceptPublishMessage msg) {
-                String topic = msg.getTopicName();
-                MessageHandler handler = handlers.get(topic);
-                if (handler != null) {
-                    handler.onMessage(topic, msg.getPayload().array());
-                }
-            }
-
-            @Override
-            public void onSessionLoopError(Throwable throwable) {
-                log.error("Error in session loop", throwable);
-            }
-        });
         log.info("Embedded MQTT client wrapper initialized");
+    }
+
+    @Override
+    public void onApplicationEvent(ContextRefreshedEvent event) {
+        if (!interceptorRegistered && embeddedMqttBroker.getMqttBroker() != null) {
+            registerInterceptor();
+            interceptorRegistered = true;
+        }
+    }
+
+    private void registerInterceptor() {
+        try {
+            embeddedMqttBroker.getMqttBroker().addInterceptHandler(new AbstractInterceptHandler() {
+                @Override
+                public String getID() {
+                    return "embedded-mqtt-client-wrapper";
+                }
+
+                @Override
+                public void onPublish(InterceptPublishMessage msg) {
+                    String topic = msg.getTopicName();
+                    MessageHandler handler = handlers.get(topic);
+                    if (handler != null) {
+                        handler.onMessage(topic, msg.getPayload().array());
+                    }
+                }
+
+                @Override
+                public void onSessionLoopError(Throwable throwable) {
+                    log.error("Error in session loop", throwable);
+                }
+            });
+            log.info("MQTT interceptor registered successfully");
+        } catch (Exception e) {
+            log.error("Failed to register MQTT interceptor", e);
+        }
     }
 
     @PreDestroy
@@ -96,7 +115,6 @@ public class EmbeddedMqttClientWrapper implements MqttClientWrapper {
 
     @Override
     public void subscribe(String topic, MessageHandler handler) throws Exception {
-        // 只需要将 handler 注册到 map，拦截器会自动接收消息
         handlers.put(topic, handler);
         log.info("Registered handler for topic: {}", topic);
     }

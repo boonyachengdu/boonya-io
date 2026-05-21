@@ -7,6 +7,39 @@
 5. 第五天：加一个简单的可视化仪表板（ECharts）
 
 整个系统落地后，你就能理解物联网平台的核心流：设备 → MQTT → 规则引擎 → 时序DB + 缓存 + 告警 → 应用展示
+# 核心流程设计
+
+```
+设备模拟器 (DeviceSimulator)
+    ↓ 发布 MQTT 消息
+MQTT Broker (Moquette/EMQX)
+    ↓ 订阅 topic: device/+/telemetry
+MqttSubscriber (后端服务)
+    ↓ 解析 JSON，判断温度 > 30℃
+ApplicationEventPublisher (Spring 事件)
+    ↓ 发布 OverTempEvent
+AlertHandler (事件监听器)
+    ↓ 通过 WebSocket 推送
+SimpMessagingTemplate
+    ↓ 发送到 /topic/alerts
+前端页面 (index.html)
+    ↓ STOMP 客户端接收
+实时显示告警信息
+```
+
+# 运行minio模块
+
+## 构建镜像
+
+```
+docker build -t boonya-io-iot .
+```
+## 卸载和构建
+```
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+```
 
 # 测试和生产
 两种方式可选

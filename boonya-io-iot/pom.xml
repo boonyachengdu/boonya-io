@@ -120,7 +120,28 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
+        <!-- TDengine JDBC Driver (REST API 版本，无需本地库) -->
+        <dependency>
+            <groupId>com.taosdata.jdbc</groupId>
+            <artifactId>taos-jdbcdriver</artifactId>
+            <version>3.2.5</version>
+        </dependency>
+
+        <!-- Utils -->
+
 
     </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+                <filtering>false</filtering>
+            </resource>
+        </resources>
+    </build>
 
 </project>
