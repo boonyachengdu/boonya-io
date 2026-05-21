@@ -1,0 +1,82 @@
+version: '3.8'
+services:
+  # ===== 基础设施服务 =====
+  emqx:
+    image: emqx/emqx:latest
+    ports:
+      - "1883:1883"
+      - "18083:18083"
+    environment:
+      - EMQX_ALLOW_ANONYMOUS=true
+    networks:
+      - iot-network
+
+  tdengine:
+    image: tdengine/tdengine:latest
+    ports:
+      - "6030:6030"
+      - "6041:6041"
+    environment:
+      - TAOS_FIRST_EP=localhost:6030
+    networks:
+      - iot-network
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - iot-network
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio-data:/data
+    networks:
+      - iot-network
+
+  # ===== 应用服务 =====
+  iot-app:
+    build:
+      context: ./boonya-io-iot
+      dockerfile: Dockerfile
+    depends_on:
+      - emqx
+      - tdengine
+      - redis
+      - minio
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    restart: on-failure
+    networks:
+      - iot-network
+
+  minio-app:
+    build:
+      context: ./boonya-io-minio
+      dockerfile: Dockerfile
+    depends_on:
+      - minio
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    restart: on-failure
+    networks:
+      - iot-network
+
+volumes:
+  minio-data:
+
+networks:
+  iot-network:
+    driver: bridge

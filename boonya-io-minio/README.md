@@ -39,6 +39,38 @@ MinIO的物联网策略通常采用"云边协同"的分层架构：
 
 MinIO凭借其轻量、高性能、云原生以及对AI的友好性，已成为物联网尤其是边缘计算场景下不可或缺的存储组件。它不仅能充当数据仓库，更是驱动AI应用持续进化的数据引擎。
 
+
+# 运行minio模块
+
+## 构建镜像
+
+```
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+## 运行容器
+
+linux
+```bash
+docker run -d \
+--name minio \
+-p 9000:9000 \
+-p 9001:9001 \
+-v /data/minio/data:/data \
+-e "MINIO_ROOT_USER=minioadmin" \
+-e "MINIO_ROOT_PASSWORD=minioadmin" \
+minio/minio:RELEASE.2025-04-22T22-12-26Z \
+server /data --console-address ":9001"
+```
+
+
+windows
+```bash
+docker run -d --name minio -p 9000:9000 -p 9001:9001 -v D:/minio/data:/data -e "MINIO_ROOT_USER=minioadmin" -e "MINIO_ROOT_PASSWORD=minioadmin" minio/minio server /data --console-address ":9001"
+```
+
 # 测试方法
 
 ```bash
@@ -47,6 +79,13 @@ curl -X POST -F "file=@test.png" http://localhost:8080/api/files/upload
 ```
 
 # 测试结果
+
+<img src="./minio.png" alt="项目架构图" width="600">
+
+
+- 9000 服务器地址
+- 9001 webUI地址
+- 图片对象访问地址
 ```
-http://localhost:9000/my-bucket/550e8400-e29b-41d4-a716-446655440000-test.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=...
+http://127.0.0.1:9001/api/v1/download-shared-object/aHR0cDovLzEyNy4wLjAuMTo5MDAwL2lvdC1sb2dzLyVFNiVBMCU4NyVFNSU4NyU4NiVFNyU5OSVCRCVFNSVCQSU5NSVFNyU5QiVCOCVFNyU4OSU4Ny5qcGc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1XUlowTEZUQ0xLWkMwRjAxMzJHOCUyRjIwMjYwNTIwJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MDUyMFQxNjA3MDNaJlgtQW16LUV4cGlyZXM9NDMxOTgmWC1BbXotU2VjdXJpdHktVG9rZW49ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmhZMk5sYzNOTFpYa2lPaUpYVWxvd1RFWlVRMHhMV2tNd1JqQXhNekpIT0NJc0ltVjRjQ0k2TVRjM09UTXpOakE1Tnl3aWNHRnlaVzUwSWpvaWJXbHVhVzloWkcxcGJpSjkuNWtwMmtsS0J1TEZOYS1fY0Z0cl8zbUt4ZTUyMFE3dm1wQ1FNM3JTR0lVY1huRXFIQl9iTnp0NDVxS3FDS0ZsLU5UNFJmeUVjbXVjRW83NmVpQWtibVEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnZlcnNpb25JZD1udWxsJlgtQW16LVNpZ25hdHVyZT01ZDljMTM0YTcwMjgwZDY1OWNlYzAxZjQ3MDI0MjZlODcwMTU4OGJlMTFiMDY1Yzg1MDdlZWZkNDc3MDFkZTNl
 ```

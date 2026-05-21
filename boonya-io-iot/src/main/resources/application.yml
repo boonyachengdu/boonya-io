@@ -37,3 +37,6 @@ minio:
 logging:
   level:
     com.boonya.io: DEBUG
+
+server:
+  port: 18080

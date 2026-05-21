@@ -7,6 +7,8 @@ services:
       - "18083:18083"
     environment:
       - EMQX_ALLOW_ANONYMOUS=true
+    networks:
+      - iot-network
 
   tdengine:
     image: tdengine/tdengine:latest
@@ -15,11 +17,15 @@ services:
       - "6041:6041"
     environment:
       - TAOS_FIRST_EP=localhost:6030
+    networks:
+      - iot-network
 
   redis:
     image: redis:alpine
     ports:
       - "6379:6379"
+    networks:
+      - iot-network
 
   minio:
     image: minio/minio:latest
@@ -30,21 +36,30 @@ services:
     environment:
       - MINIO_ROOT_USER=minioadmin
       - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio-data:/data
+    networks:
+      - iot-network
 
   spring-app:
-    build: ..
+    build:
+      context: .
+      dockerfile: Dockerfile
     depends_on:
       - emqx
       - tdengine
       - redis
       - minio
     ports:
-      - "8080:8080"
+      - "18080:18080"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     restart: on-failure
     networks:
       - iot-network
+
+volumes:
+  minio-data:
 
 networks:
   iot-network:

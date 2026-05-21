@@ -5,10 +5,19 @@ spring:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
-
+  # 移除 Nacos 相关配置（如果不需要微服务）
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+      config:
+        enabled: false
 # MinIO配置
 minio:
   endpoint: http://localhost:9000        # MinIO API地址
   access-key: minioadmin                 # 访问密钥
   secret-key: minioadmin                 # 秘密密钥
   bucket-name: my-bucket                 # 桶名称
+
+server:
+  port: 28080
