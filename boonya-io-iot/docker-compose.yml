@@ -7,6 +7,8 @@ services:
       - "18083:18083"
     environment:
       - EMQX_ALLOW_ANONYMOUS=true
+      - EMQX_DEFAULT_USERNAME=admin
+      - EMQX_DEFAULT_PASSWORD=public
     networks:
       - iot-network
 

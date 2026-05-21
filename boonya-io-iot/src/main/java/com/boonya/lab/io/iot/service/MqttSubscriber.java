@@ -24,6 +24,7 @@ public class MqttSubscriber {
     public void subscribe() {
         try {
             mqttClient.subscribe("device/+/telemetry", (topic, payload) -> {
+                log.info("Received message - Topic: {}, Payload: {}", topic, new String(payload));
                 String deviceId = topic.split("/")[1];
                 String message = new String(payload);
                 handleDeviceData(deviceId, message);

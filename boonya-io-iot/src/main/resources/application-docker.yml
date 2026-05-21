@@ -34,6 +34,8 @@ mqtt:
     host: tcp://emqx:1883
     embedded-port: 1883
     allow-anonymous: true
+    username: admin
+    password: public
 
 # MinIO 配置
 minio:

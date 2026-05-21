@@ -36,6 +36,8 @@ mqtt:
     allow-anonymous: true
     # 外部EMQX配置（type=emqx时生效）
     host: tcp://localhost:1883
+    username: admin
+    password: public
 
 minio:
   endpoint: http://localhost:9000

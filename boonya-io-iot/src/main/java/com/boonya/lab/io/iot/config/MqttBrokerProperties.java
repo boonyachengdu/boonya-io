@@ -34,4 +34,15 @@ public class MqttBrokerProperties {
      * 是否允许匿名访问（嵌入式）
      */
     private boolean allowAnonymous = true;
+
+    /**
+     * 账号
+     */
+    private String username;
+
+    /**
+     * 密码
+     */
+    private String password;
+
 }

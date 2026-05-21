@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IoT监控看板</title>
-    <script src="https://cdn.sockjs.org/sockjs-1.6.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
         body {
@@ -30,27 +30,116 @@
             background-color: #fff5f5;
             color: #d32f2f;
         }
+        .status {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        .status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        .status.connecting {
+            background-color: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
     </style>
 </head>
 <body>
 <h1>设备告警实时看板</h1>
+<div id="status" class="status connecting">正在连接...</div>
 <div id="alerts"></div>
 <script>
-    var socket = new SockJS('/ws');
+    var statusDiv = document.getElementById('status');
+    var alertsDiv = document.getElementById('alerts');
+
+    // 获取当前页面的协议、主机和端口
+    var wsUrl = window.location.protocol + '//' + window.location.host + '/ws';
+    console.log('Connecting to WebSocket:', wsUrl);
+
+    var socket = new SockJS(wsUrl);
     var stompClient = Stomp.over(socket);
-    stompClient.connect({}, function() {
+
+    // 启用调试日志
+    stompClient.debug = function(msg) {
+        console.log('[STOMP] ' + msg);
+    };
+
+    // 设置重连间隔
+    stompClient.reconnect_delay = 5000;
+
+    function onConnected() {
         console.log('Connected to WebSocket');
+        statusDiv.textContent = '✓ 已连接到 WebSocket';
+        statusDiv.className = 'status connected';
+
+        // 订阅告警主题
         stompClient.subscribe('/topic/alerts', function(message) {
-            var alert = JSON.parse(message.body);
-            var div = document.getElementById('alerts');
-            var alertDiv = document.createElement('div');
-            alertDiv.className = 'alert-item';
-            alertDiv.textContent = alert.message + ' - ' + new Date(alert.timestamp).toLocaleString();
-            div.insertBefore(alertDiv, div.firstChild);
+            console.log('Received alert:', message.body);
+            try {
+                var alert = JSON.parse(message.body);
+                var alertDiv = document.createElement('div');
+                alertDiv.className = 'alert-item';
+                alertDiv.textContent = alert.message + ' - ' + new Date(alert.timestamp).toLocaleString();
+                alertsDiv.insertBefore(alertDiv, alertsDiv.firstChild);
+
+                // 限制显示数量，最多保留100条
+                while (alertsDiv.children.length > 100) {
+                    alertsDiv.removeChild(alertsDiv.lastChild);
+                }
+            } catch (e) {
+                console.error('Failed to parse message:', e);
+            }
+        }, function(error) {
+            console.error('Subscription error:', error);
         });
-    }, function(error) {
+    }
+
+    function onError(error) {
         console.error('WebSocket connection error:', error);
-    });
+        statusDiv.textContent = '✗ 连接失败: ' + (error || '未知错误');
+        statusDiv.className = 'status disconnected';
+    }
+
+    // 连接 WebSocket
+    stompClient.connect({}, onConnected, onError);
+
+    // 监听连接关闭
+    socket.onclose = function() {
+        console.log('WebSocket closed');
+        statusDiv.textContent = '⚠ 连接已断开，正在重连...';
+        statusDiv.className = 'status connecting';
+    };
+
+    socket.onopen = function() {
+        console.log('WebSocket opened');
+    };
+
+    // 添加测试消息按钮
+    var testBtn = document.createElement('button');
+    testBtn.textContent = '发送测试消息';
+    testBtn.style.marginTop = '10px';
+    testBtn.style.padding = '10px 20px';
+    testBtn.onclick = function() {
+        var testAlert = {
+            message: '测试告警消息',
+            deviceId: 'test_device',
+            temp: 35.5,
+            timestamp: Date.now()
+        };
+        var alertDiv = document.createElement('div');
+        alertDiv.className = 'alert-item';
+        alertDiv.textContent = testAlert.message + ' - ' + new Date(testAlert.timestamp).toLocaleString();
+        alertsDiv.insertBefore(alertDiv, alertsDiv.firstChild);
+    };
+    document.body.appendChild(testBtn);
 </script>
 </body>
 </html>
