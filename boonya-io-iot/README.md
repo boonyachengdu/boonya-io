@@ -74,6 +74,12 @@ docker-compose up -d emqx tdengine redis minio
 docker-compose ps
 ```
 
+# 初始化Tdengine 时序数据库
+
+```bash
+Invoke-WebRequest -Uri "http://localhost:6041/rest/sql" -Method POST -Body "CREATE DATABASE IF NOT EXISTS iot" -Headers @{Authorization="Basic cm9vdDp0YW9zZGF0YQ=="}
+```
+
 # 访问地址
 服务启动后，可以通过以下地址访问：
 
