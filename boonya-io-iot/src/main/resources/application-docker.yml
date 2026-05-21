@@ -16,7 +16,7 @@ spring:
 
   # TDengine 配置（使用 REST API 驱动，无需本地库）
   datasource:
-    url: jdbc:TAOS-RS://localhost:6041/iot
+    url: jdbc:TAOS-RS://tdengine:6041/iot
     username: root
     password: taosdata
     driver-class-name: com.taosdata.jdbc.rs.RestfulDriver

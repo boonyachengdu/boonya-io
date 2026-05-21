@@ -76,6 +76,8 @@ docker-compose ps
 
 # 初始化Tdengine 时序数据库
 
+powershell
+
 ```bash
 Invoke-WebRequest -Uri "http://localhost:6041/rest/sql" -Method POST -Body "CREATE DATABASE IF NOT EXISTS iot" -Headers @{Authorization="Basic cm9vdDp0YW9zZGF0YQ=="}
 ```

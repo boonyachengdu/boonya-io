@@ -33,22 +33,27 @@ public class TimeSeriesService {
             // 测试连接是否可用
             testConnection();
 
+            // 创建数据库
             jdbcTemplate.execute("CREATE DATABASE IF NOT EXISTS iot");
             log.info("TDengine database 'iot' created or already exists");
 
-            String createStable = "CREATE STABLE IF NOT EXISTS iot.devices " +
-                    "(ts TIMESTAMP, value FLOAT) " +
-                    "TAGS (device_id BINARY(32))";
+            // 确保使用正确的数据库
+            jdbcTemplate.execute("USE iot");
+            log.info("Switched to database 'iot'");
+
+            // 创建超级表 - 修复 TDengine 3.x REST API 驱动的语法问题
+            String createStable = "CREATE STABLE IF NOT EXISTS iot.devices (ts TIMESTAMP, ts_value FLOAT) TAGS (device_id NCHAR(32))";
             jdbcTemplate.execute(createStable);
-            log.info("TDengine stable table created");
+            log.info("TDengine stable table 'iot.devices' created successfully");
 
             connectionHealthy.set(true);
+            log.info("TDengine initialized successfully");
 
             // 处理积压的数据
             flushPendingWrites();
 
         } catch (Exception e) {
-            log.warn("TDengine init failed: {}, using mock storage. Will retry on next write.", e.getMessage());
+            log.error("TDengine init failed: {}", e.getMessage(), e);
             connectionHealthy.set(false);
         }
     }
@@ -78,6 +83,9 @@ public class TimeSeriesService {
             } catch (Exception e) {
                 log.warn("Write failed, marking connection as unhealthy: {}", e.getMessage());
                 connectionHealthy.set(false);
+
+                // 尝试重新初始化
+                tryReinitialize();
             }
         }
 
@@ -90,8 +98,50 @@ public class TimeSeriesService {
     }
 
     private void doSave(String deviceId, double temp, long ts) throws Exception {
-        String sql = "INSERT INTO iot.t_" + deviceId + " USING iot.devices TAGS (?) VALUES (?, ?)";
-        jdbcTemplate.update(sql, deviceId, new Timestamp(ts), temp);
+        // 验证 deviceId 格式，防止 SQL 注入
+        String safeDeviceId = deviceId.replaceAll("[^a-zA-Z0-9_-]", "_");
+        String tableName = "iot.t_" + safeDeviceId;
+
+        // 确保超级表存在
+        ensureSuperTableExists();
+
+        // 自动创建子表（如果不存在）
+        String createTableSql = "CREATE TABLE IF NOT EXISTS " + tableName +
+                " USING iot.devices TAGS (?)";
+        jdbcTemplate.update(createTableSql, safeDeviceId);
+
+        // 插入数据
+        String sql = "INSERT INTO " + tableName + " VALUES (?, ?)";
+        jdbcTemplate.update(sql, new Timestamp(ts), temp);
+
+        log.debug("Saved data: device={}, ts={}, value={}", safeDeviceId, ts, temp);
+    }
+
+    private void ensureSuperTableExists() {
+        try {
+            // 检查超级表是否存在
+            jdbcTemplate.queryForList("DESCRIBE iot.devices");
+        } catch (Exception e) {
+            // 超级表不存在，创建它
+            log.warn("Super table 'iot.devices' not found, creating...");
+            try {
+                // 修复 TDengine 3.x REST API 驱动的语法问题
+                jdbcTemplate.execute("CREATE STABLE iot.devices (ts TIMESTAMP, ts_value FLOAT) TAGS (device_id NCHAR(32))");
+                log.info("Super table 'iot.devices' created");
+            } catch (Exception ex) {
+                log.error("Failed to create super table: {}", ex.getMessage());
+                throw new RuntimeException("Failed to create super table", ex);
+            }
+        }
+    }
+
+    private void tryReinitialize() {
+        log.info("Attempting to reinitialize TDengine...");
+        try {
+            initTable();
+        } catch (Exception e) {
+            log.error("Reinitialization failed: {}", e.getMessage());
+        }
     }
 
     private void tryReconnect() {
@@ -135,9 +185,13 @@ public class TimeSeriesService {
             return List.of();
         }
         try {
-            String sql = "SELECT ts, value FROM iot.t_" + deviceId + " WHERE ts >= ? AND ts <= ?";
+            // 验证 deviceId 格式，防止 SQL 注入
+            String safeDeviceId = deviceId.replaceAll("[^a-zA-Z0-9_-]", "_");
+            String tableName = "iot.t_" + safeDeviceId;
+
+            String sql = "SELECT ts, ts_value FROM " + tableName + " WHERE ts >= ? AND ts <= ?";
             return jdbcTemplate.query(sql, new Object[]{new Timestamp(startTs), new Timestamp(endTs)},
-                    (rs, rowNum) -> new DeviceData(rs.getTimestamp("ts").getTime(), rs.getDouble("value")));
+                    (rs, rowNum) -> new DeviceData(rs.getTimestamp("ts").getTime(), rs.getDouble("ts_value")));
         } catch (Exception e) {
             log.error("Failed to query history: {}", e.getMessage());
             connectionHealthy.set(false);

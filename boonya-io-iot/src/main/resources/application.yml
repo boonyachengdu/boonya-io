@@ -1,6 +1,9 @@
 spring:
   application:
     name: boonya-io-iot
+  # 默认使用docker配置
+  profiles:
+    active: docker
   cloud:
     nacos:
       discovery:

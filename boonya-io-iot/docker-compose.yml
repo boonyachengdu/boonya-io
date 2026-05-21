@@ -13,8 +13,9 @@ services:
   tdengine:
     image: tdengine/tdengine:latest
     ports:
-      - "6030:6030"
-      - "6041:6041"
+        - "6030:6030"
+        - "6041:6041"
+        - "6060:6060"    # 新增ui，用于 taosExplorer
     environment:
       - TAOS_FIRST_EP=localhost:6030
     networks:
