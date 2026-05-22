@@ -1,0 +1,31 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: boonya-io-analytics
+#  autoconfigure:
+#    exclude:
+#      - org.springframework.boot.autoconfigure.data.jdbc.JdbcRepositoriesAutoConfiguration
+#      - org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration
+  datasource:
+    url: jdbc:TAOS-RS://localhost:6041/iot
+    username: root
+    password: taosdata
+    driver-class-name: com.taosdata.jdbc.rs.RestfulDriver
+    # 添加连接池配置
+    hikari:
+      connection-timeout: 5000
+      maximum-pool-size: 5
+      minimum-idle: 1
+      initialization-fail-timeout: -1  # 不因为初始化失败而启动失败
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.boonya.lab.io.analytics: DEBUG

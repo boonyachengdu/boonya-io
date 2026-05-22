@@ -1,0 +1,38 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: boonya-io-device
+  
+  datasource:
+    url: jdbc:postgresql://postgres:5432/iot_device
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  redis:
+    host: redis
+    port: 6379
+    database: 1
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.boonya.lab.io.device: DEBUG
