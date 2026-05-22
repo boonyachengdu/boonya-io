@@ -8,6 +8,10 @@ services:
       - "18083:18083"
     environment:
       - EMQX_ALLOW_ANONYMOUS=true
+    volumes:
+      - emqx-data:/opt/emqx/data
+      - emqx-log:/opt/emqx/log
+      - emqx-etc:/opt/emqx/etc
     networks:
       - iot-network
 
@@ -18,6 +22,9 @@ services:
       - "6041:6041"
     environment:
       - TAOS_FIRST_EP=localhost:6030
+    volumes:
+      - tdengine-data:/var/lib/taos
+      - tdengine-log:/var/log/taos
     networks:
       - iot-network
 
@@ -25,6 +32,9 @@ services:
     image: redis:alpine
     ports:
       - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
     networks:
       - iot-network
 
@@ -75,6 +85,12 @@ services:
       - iot-network
 
 volumes:
+  emqx-data:
+  emqx-log:
+  emqx-etc:
+  tdengine-data:
+  tdengine-log:
+  redis-data:
   minio-data:
 
 networks:

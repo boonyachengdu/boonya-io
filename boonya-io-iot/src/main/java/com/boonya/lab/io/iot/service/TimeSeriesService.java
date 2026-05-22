@@ -33,21 +33,7 @@ public class TimeSeriesService {
             // 测试连接是否可用
             testConnection();
 
-            // 创建数据库
-            jdbcTemplate.execute("CREATE DATABASE IF NOT EXISTS iot");
-            log.info("TDengine database 'iot' created or already exists");
-
-            // 确保使用正确的数据库
-            jdbcTemplate.execute("USE iot");
-            log.info("Switched to database 'iot'");
-
-            // 创建超级表 - 修复 TDengine 3.x REST API 驱动的语法问题
-            String createStable = "CREATE STABLE IF NOT EXISTS iot.devices (ts TIMESTAMP, ts_value FLOAT) TAGS (device_id NCHAR(32))";
-            jdbcTemplate.execute(createStable);
-            log.info("TDengine stable table 'iot.devices' created successfully");
-
-            connectionHealthy.set(true);
-            log.info("TDengine initialized successfully");
+            initDatabaseAndTables();
 
             // 处理积压的数据
             flushPendingWrites();
@@ -56,6 +42,24 @@ public class TimeSeriesService {
             log.error("TDengine init failed: {}", e.getMessage(), e);
             connectionHealthy.set(false);
         }
+    }
+
+    private void initDatabaseAndTables() {
+        // 创建数据库
+        jdbcTemplate.execute("CREATE DATABASE IF NOT EXISTS iot");
+        log.info("TDengine database 'iot' created or already exists");
+
+        // 确保使用正确的数据库
+        jdbcTemplate.execute("USE iot");
+        log.info("Switched to database 'iot'");
+
+        // 创建超级表 - 修复 TDengine 3.x REST API 驱动的语法问题
+        String createStable = "CREATE STABLE IF NOT EXISTS iot.devices (ts TIMESTAMP, ts_value FLOAT) TAGS (device_id NCHAR(32))";
+        jdbcTemplate.execute(createStable);
+        log.info("TDengine stable table 'iot.devices' created successfully");
+
+        connectionHealthy.set(true);
+        log.info("TDengine initialized successfully");
     }
 
     private void testConnection() {
