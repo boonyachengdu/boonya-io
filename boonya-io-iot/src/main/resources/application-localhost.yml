@@ -47,4 +47,4 @@ logging:
     com.boonya.io: DEBUG
 
 server:
-  port: 18080
+  port: 8081

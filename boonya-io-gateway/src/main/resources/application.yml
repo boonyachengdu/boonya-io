@@ -1,0 +1,81 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: boonya-io-gateway
+  
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+      
+      routes:
+        # 认证服务
+        - id: auth-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=0
+        
+        # 设备管理服务
+        - id: device-service
+          uri: http://localhost:38080
+          predicates:
+            - Path=/api/devices/**
+          filters:
+            - StripPrefix=0
+        
+        # IoT 核心服务
+        - id: iot-service
+          uri: http://localhost:18080
+          predicates:
+            - Path=/api/iot/**
+          filters:
+            - StripPrefix=0
+        
+        # MinIO 服务
+        - id: minio-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/files/**
+          filters:
+            - StripPrefix=0
+        
+        # OTA 升级服务
+        - id: ota-service
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/firmware/**,/api/ota/**
+          filters:
+            - StripPrefix=0
+      
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+  redis:
+    host: localhost
+    port: 6379
+    database: 3
+
+# JWT 配置（用于验证 Token）
+jwt:
+  secret: boonya-iot-jwt-secret-key-2026-very-long-secret-for-security
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.boonya.lab.io.gateway: DEBUG

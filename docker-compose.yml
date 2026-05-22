@@ -1,35 +1,45 @@
 version: '3.8'
+
 services:
   # ===== 基础设施服务 =====
-  emqx:
-    image: emqx/emqx:latest
+  
+  # PostgreSQL - 业务数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: iot-postgres
     ports:
-      - "1883:1883"
-      - "18083:18083"
+      - "5432:5432"
     environment:
-      - EMQX_ALLOW_ANONYMOUS=true
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: iot_device
     volumes:
-      - emqx-data:/opt/emqx/data
-      - emqx-log:/opt/emqx/log
-      - emqx-etc:/opt/emqx/etc
+      - postgres-data:/var/lib/postgresql/data
     networks:
       - iot-network
+    restart: unless-stopped
 
+  # TDengine - 时序数据库
   tdengine:
     image: tdengine/tdengine:latest
+    container_name: iot-tdengine
     ports:
       - "6030:6030"
       - "6041:6041"
+      - "6060:6060"
     environment:
-      - TAOS_FIRST_EP=localhost:6030
+      TAOS_FIRST_EP: localhost:6030
     volumes:
       - tdengine-data:/var/lib/taos
       - tdengine-log:/var/log/taos
     networks:
       - iot-network
+    restart: unless-stopped
 
+  # Redis - 缓存
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
+    container_name: iot-redis
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes
@@ -37,60 +47,195 @@ services:
       - redis-data:/data
     networks:
       - iot-network
+    restart: unless-stopped
 
+  # EMQX - MQTT Broker
+  emqx:
+    image: emqx/emqx:5.4
+    container_name: iot-emqx
+    ports:
+      - "1883:1883"
+      - "8083:8083"
+      - "8883:8883"
+      - "18083:18083"
+    environment:
+      EMQX_ALLOW_ANONYMOUS: "true"
+      EMQX_DEFAULT_USERNAME: admin
+      EMQX_DEFAULT_PASSWORD: public
+    volumes:
+      - emqx-data:/opt/emqx/data
+      - emqx-log:/opt/emqx/log
+      - emqx-etc:/opt/emqx/etc
+    networks:
+      - iot-network
+    restart: unless-stopped
+
+  # MinIO - 对象存储
   minio:
     image: minio/minio:latest
+    container_name: iot-minio
     ports:
       - "9000:9000"
       - "9001:9001"
     command: server /data --console-address ":9001"
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
     volumes:
       - minio-data:/data
     networks:
       - iot-network
+    restart: unless-stopped
 
   # ===== 应用服务 =====
+
+  # API 网关
+  gateway:
+    build:
+      context: ./boonya-io-gateway
+      dockerfile: Dockerfile
+    container_name: iot-gateway
+    depends_on:
+      - redis
+      - auth
+      - device
+      - iot-app
+      - minio-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_REDIS_HOST: redis
+      JWT_SECRET: boonya-iot-jwt-secret-key-2026-very-long-secret-for-security
+    networks:
+      - iot-network
+    restart: on-failure
+
+  # 认证服务
+  auth:
+    build:
+      context: ./boonya-io-auth
+      dockerfile: Dockerfile
+    container_name: iot-auth
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/iot_auth
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_REDIS_HOST: redis
+      JWT_SECRET: boonya-iot-jwt-secret-key-2026-very-long-secret-for-security
+    networks:
+      - iot-network
+    restart: on-failure
+
+  # 设备管理服务
+  device:
+    build:
+      context: ./boonya-io-device
+      dockerfile: Dockerfile
+    container_name: iot-device
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "38080:38080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/iot_device
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_REDIS_HOST: redis
+    networks:
+      - iot-network
+    restart: on-failure
+
+  # IoT 核心服务
   iot-app:
     build:
       context: ./boonya-io-iot
       dockerfile: Dockerfile
+    container_name: iot-core
     depends_on:
       - emqx
       - tdengine
       - redis
-      - minio
     ports:
-      - "8081:8080"
+      - "18080:18080"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    restart: on-failure
+      SPRING_PROFILES_ACTIVE: docker
+      MQTT_BROKER_HOST: tcp://emqx:1883
+      TDENGINE_URL: jdbc:TAOS-RS://tdengine:6041/iot
+      SPRING_REDIS_HOST: redis
     networks:
       - iot-network
+    restart: on-failure
 
+  # MinIO 服务
   minio-app:
     build:
       context: ./boonya-io-minio
       dockerfile: Dockerfile
+    container_name: iot-minio-service
     depends_on:
       - minio
     ports:
-      - "8082:8080"
+      - "8082:8082"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    restart: on-failure
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
     networks:
       - iot-network
+    restart: on-failure
+
+  # 数据分析服务
+  analytics:
+    build:
+      context: ./boonya-io-analytics
+      dockerfile: Dockerfile
+    container_name: iot-analytics
+    depends_on:
+      - tdengine
+    ports:
+      - "8084:8084"
+    environment:
+      TDENGINE_URL: jdbc:TAOS-RS://tdengine:6041/iot
+    networks:
+      - iot-network
+    restart: on-failure
+
+  # OTA 升级服务
+  ota:
+    build:
+      context: ./boonya-io-ota
+      dockerfile: Dockerfile
+    container_name: iot-ota
+    depends_on:
+      - postgres
+      - minio
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/iot_ota
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    networks:
+      - iot-network
+    restart: on-failure
 
 volumes:
-  emqx-data:
-  emqx-log:
-  emqx-etc:
+  postgres-data:
   tdengine-data:
   tdengine-log:
   redis-data:
+  emqx-data:
+  emqx-log:
+  emqx-etc:
   minio-data:
 
 networks:

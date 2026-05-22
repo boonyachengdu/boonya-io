@@ -49,4 +49,4 @@ logging:
     com.boonya.io: INFO
 
 server:
-  port: 18080
+  port: 8081

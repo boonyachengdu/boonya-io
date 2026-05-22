@@ -1,0 +1,22 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: boonya-io-analytics
+  
+  datasource:
+    url: jdbc:TAOS-RS://localhost:6041/iot
+    username: root
+    password: taosdata
+    driver-class-name: com.taosdata.jdbc.rs.RestfulDriver
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.boonya.lab.io.analytics: DEBUG

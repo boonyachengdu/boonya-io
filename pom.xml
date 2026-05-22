@@ -18,6 +18,12 @@
     <modules>
         <module>boonya-io-minio</module>
         <module>boonya-io-iot</module>
+        <module>boonya-io-common</module>
+        <module>boonya-io-gateway</module>
+        <module>boonya-io-analytics</module>
+        <module>boonya-io-auth</module>
+        <module>boonya-io-ota</module>
+        <module>boonya-io-device</module>
     </modules>
 
     <properties>
