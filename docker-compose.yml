@@ -55,7 +55,7 @@ services:
     container_name: iot-emqx
     ports:
       - "1883:1883"
-      - "8083:8083"
+      - "8183:8083"
       - "8883:8883"
       - "18083:18083"
     environment:
@@ -141,7 +141,7 @@ services:
       - postgres
       - redis
     ports:
-      - "38080:38080"
+      - "8086:8086"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/iot_device
       SPRING_DATASOURCE_USERNAME: postgres
@@ -162,7 +162,7 @@ services:
       - tdengine
       - redis
     ports:
-      - "18080:18080"
+      - "8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: docker
       MQTT_BROKER_HOST: tcp://emqx:1883

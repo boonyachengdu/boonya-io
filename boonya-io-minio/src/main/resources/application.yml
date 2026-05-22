@@ -20,4 +20,4 @@ minio:
   bucket-name: my-bucket                 # 桶名称
 
 server:
-  port: 28080
+  port: 8082

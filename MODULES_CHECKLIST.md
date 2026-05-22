@@ -1,9 +1,9 @@
 # Boonya IoT 平台 - 模块实现清单
 
-## ✅ 已完成的模块
+## ✅ 后端模块（8/8 全部完成）
 
 ### 1. boonya-io-common (公共模块)
-**状态**: ✅ 已完成  
+**状态**: ✅ 已完成
 **位置**: `D:\code\boonya-io\boonya-io-common`
 
 #### 核心文件
@@ -27,9 +27,41 @@ src/main/java/com/boonya/lab/io/common/
 
 ---
 
-### 2. boonya-io-device (设备管理模块)
-**状态**: ✅ 已完成  
-**端口**: 38080  
+### 2. boonya-io-auth (认证授权模块)
+**状态**: ✅ 已完成
+**端口**: 8083
+**位置**: `D:\code\boonya-io\boonya-io-auth`
+
+#### 核心文件
+```
+src/main/java/com/boonya/lab/io/auth/
+├── AuthApplication.java                  # 主应用类
+├── controller/
+│   └── AuthController.java               # 认证控制器
+├── dto/
+│   ├── LoginRequest.java                 # 登录请求
+│   └── LoginResponse.java                # 登录响应
+├── entity/
+│   └── User.java                         # 用户实体
+├── mapper/
+│   └── UserMapper.java                   # 用户 Mapper
+├── service/
+│   └── AuthService.java                  # 认证服务
+└── util/
+    └── JwtUtils.java                     # JWT 工具类
+```
+
+#### API 接口
+- `POST /api/auth/login` - 用户登录
+- `POST /api/auth/refresh` - 刷新 Token
+- `POST /api/auth/logout` - 用户登出
+- `POST /api/auth/register` - 用户注册
+
+---
+
+### 3. boonya-io-device (设备管理模块)
+**状态**: ✅ 已完成
+**端口**: 38080
 **位置**: `D:\code\boonya-io\boonya-io-device`
 
 #### 核心文件
@@ -69,155 +101,209 @@ src/main/java/com/boonya/lab/io/device/
 
 ---
 
-### 3. boonya-io-auth (认证授权模块)
-**状态**: 🔄 部分完成  
-**端口**: 8083  
-**位置**: `D:\code\boonya-io\boonya-io-auth`
+### 4. boonya-io-iot (IoT 核心模块)
+**状态**: ✅ 已完成
+**端口**: 18080
+**位置**: `D:\code\boonya-io\boonya-io-iot`
 
-#### 已创建的文件
+#### 核心文件
 ```
-src/main/java/com/boonya/lab/io/auth/
-├── AuthApplication.java                  # ✅ 主应用类
-├── util/
-│   └── JwtUtils.java                     # ✅ JWT 工具类
-└── entity/
-    └── User.java                         # ✅ 用户实体
-```
-
-#### 需要补充的文件
-```
-src/main/java/com/boonya/lab/io/auth/
+src/main/java/com/boonya/lab/io/iot/
+├── IotApplication.java                   # 主应用类
 ├── config/
-│   ├── SecurityConfig.java               # ⏳ Spring Security 配置
-│   └── MybatisPlusConfig.java            # ⏳ MyBatis-Plus 配置
+│   ├── EmbeddedMqttBroker.java           # 嵌入式 MQTT Broker
+│   ├── EmqxClientConfig.java             # EMQX 客户端配置
+│   ├── MqttBrokerProperties.java         # MQTT Broker 属性
+│   └── WebSocketConfig.java              # WebSocket 配置
+├── constant/
+│   └── NettyConfig.java                  # Netty 配置常量
 ├── controller/
-│   └── AuthController.java               # ⏳ 认证控制器
-├── dto/
-│   ├── LoginRequest.java                 # ⏳ 登录请求
-│   ├── LoginResponse.java                # ⏳ 登录响应
-│   ├── RegisterRequest.java              # ⏳ 注册请求
-│   └── UserInfoResponse.java             # ⏳ 用户信息响应
-├── entity/
-│   ├── Role.java                         # ⏳ 角色实体
-│   └── UserRole.java                     # ⏳ 用户角色关联
-├── mapper/
-│   ├── UserMapper.java                   # ⏳ 用户 Mapper
-│   ├── RoleMapper.java                   # ⏳ 角色 Mapper
-│   └── UserRoleMapper.java               # ⏳ 用户角色 Mapper
-├── service/
-│   ├── AuthService.java                  # ⏳ 认证服务
-│   └── UserService.java                  # ⏳ 用户服务
-└── security/
-    ├── JwtAuthenticationFilter.java      # ⏳ JWT 认证过滤器
-    └── UserDetailsServiceImpl.java       # ⏳ 用户详情服务
+│   ├── DeviceController.java             # 设备控制器
+│   ├── HealthController.java             # 健康检查
+│   ├── HomeController.java               # 首页
+│   └── RuleController.java               # 规则引擎控制器
+├── device/
+│   └── DeviceSimulator.java              # 设备模拟器
+├── event/
+│   ├── OverTempEvent.java                # 温度超限事件
+│   └── handler/
+│       └── AlertHandler.java             # 告警处理器
+├── model/
+│   ├── DeviceData.java                   # 设备数据模型
+│   └── DeviceLog.java                    # 设备日志模型
+├── mqtt/
+│   ├── MqttClientWrapper.java            # MQTT 客户端接口
+│   └── impl/
+│       ├── EmbeddedMqttClientWrapper.java # 嵌入式 MQTT 实现
+│       └── EmqxMqttClientWrapper.java    # EMQX MQTT 实现
+└── ruleengine/
+    ├── Rule.java                         # 规则定义
+    └── RuleEngine.java                   # 规则引擎
 ```
 
----
-
-## 🚧 待实现的模块
-
-### 4. boonya-io-gateway (API 网关)
-**优先级**: ⭐⭐⭐⭐⭐  
-**计划端口**: 8080
-
-#### 需要创建的核心文件
-```
-src/main/java/com/boonya/lab/io/gateway/
-├── GatewayApplication.java
-├── config/
-│   ├── GatewayConfig.java                # 路由配置
-│   └── CorsConfig.java                   # CORS 配置
-└── filter/
-    ├── AuthenticationFilter.java         # 认证过滤器
-    └── LoggingFilter.java                # 日志过滤器
-```
+#### 核心功能
+- ✅ MQTT Broker（EMQX + 嵌入式 Moquette 双方案）
+- ✅ 时序数据存储（TDengine）
+- ✅ WebSocket 实时推送
+- ✅ 规则引擎（条件判断与事件触发）
+- ✅ 告警服务
+- ✅ 设备模拟器
 
 ---
 
 ### 5. boonya-io-analytics (数据分析模块)
-**优先级**: ⭐⭐⭐⭐  
-**计划端口**: 8084
+**状态**: ✅ 已完成
+**端口**: 8084
+**位置**: `D:\code\boonya-io\boonya-io-analytics`
 
-#### 需要创建的核心文件
+#### 核心文件
 ```
 src/main/java/com/boonya/lab/io/analytics/
-├── AnalyticsApplication.java
+├── AnalyticsApplication.java             # 主应用类
 ├── controller/
-│   ├── DashboardController.java          # 看板数据
-│   └── ReportController.java             # 报表数据
-├── service/
-│   ├── DashboardService.java             # 看板服务
-│   └── StatisticsService.java            # 统计服务
-└── dto/
-    ├── DashboardData.java                # 看板数据 DTO
-    └── StatisticsResult.java             # 统计结果 DTO
+│   └── DashboardController.java          # 看板数据控制器
+├── dto/
+│   └── DeviceRealtimeData.java           # 设备实时数据 DTO
+└── service/
+    └── DashboardService.java             # 看板服务
+```
+
+#### API 接口
+- `GET /api/analytics/device/{deviceId}/realtime` - 设备实时数据
+- `GET /api/analytics/device/{deviceId}/trend` - 设备趋势数据
+- `GET /api/analytics/overview` - 系统概览
+
+---
+
+### 6. boonya-io-minio (对象存储模块)
+**状态**: ✅ 已完成
+**端口**: 8082
+**位置**: `D:\code\boonya-io\boonya-io-minio`
+
+#### 核心文件
+```
+src/main/java/com/boonya/lab/io/minio/
+├── MinioApplication.java                 # 主应用类
+├── config/
+│   ├── MinioConfig.java                  # MinIO 配置
+│   └── MinioProperties.java              # MinIO 属性
+├── controller/
+│   ├── FileController.java               # 文件控制器
+│   └── HomeController.java               # 首页
+└── service/
+    └── MinioService.java                 # MinIO 服务
 ```
 
 ---
 
-### 6. boonya-io-ota (固件升级模块)
-**优先级**: ⭐⭐⭐  
-**计划端口**: 8085
+### 7. boonya-io-gateway (API 网关)
+**状态**: ✅ 已完成
+**端口**: 8080
+**位置**: `D:\code\boonya-io\boonya-io-gateway`
 
-#### 需要创建的核心文件
+#### 核心文件
+```
+src/main/java/com/boonya/lab/io/gateway/
+├── GatewayApplication.java               # 主应用类
+└── filter/
+    └── AuthenticationFilter.java         # JWT 认证过滤器
+```
+
+#### 路由配置
+| 路径 | 目标服务 | 端口   |
+|------|---------|------|
+| `/api/auth/**` | auth-service | 8083 |
+| `/api/devices/**` | device-service | 8086 |
+| `/api/iot/**` | iot-service | 8081 |
+| `/api/analytics/**` | analytics-service | 8084 |
+| `/api/files/**` | minio-service | 8082 |
+| `/api/firmware/**`, `/api/ota/**` | ota-service | 8085 |
+
+---
+
+### 8. boonya-io-ota (固件升级模块)
+**状态**: ✅ 已完成
+**端口**: 8085
+**位置**: `D:\code\boonya-io\boonya-io-ota`
+
+#### 核心文件
 ```
 src/main/java/com/boonya/lab/io/ota/
-├── OtaApplication.java
+├── OtaApplication.java                   # 主应用类
+├── config/
+│   └── MinioConfig.java                  # MinIO 配置
 ├── controller/
-│   ├── FirmwareController.java           # 固件管理
-│   └── UpgradeController.java            # 升级管理
-├── service/
-│   ├── FirmwareService.java              # 固件服务
-│   └── UpgradeService.java               # 升级服务
-└── entity/
-    ├── Firmware.java                     # 固件实体
-    └── UpgradeRecord.java                # 升级记录实体
+│   ├── FirmwareController.java           # 固件控制器
+│   └── OtaTaskController.java            # OTA 任务控制器
+├── dto/
+│   └── FirmwareUploadRequest.java        # 上传请求 DTO
+├── entity/
+│   ├── Firmware.java                     # 固件实体
+│   └── OtaTask.java                      # OTA 任务实体
+├── repository/
+│   ├── FirmwareRepository.java           # 固件仓库
+│   └── OtaTaskRepository.java            # 任务仓库
+└── service/
+    ├── FirmwareService.java              # 固件服务
+    └── OtaTaskService.java              # 任务服务
 ```
+
+#### API 接口
+**固件管理**：
+- `POST /api/firmware` - 上传固件
+- `GET /api/firmware` - 获取固件列表
+- `GET /api/firmware/{id}` - 获取固件详情
+- `POST /api/firmware/{id}/publish` - 发布固件
+- `POST /api/firmware/{id}/archive` - 归档固件
+- `DELETE /api/firmware/{id}` - 删除固件
+
+**OTA 任务**：
+- `POST /api/ota/tasks` - 创建任务
+- `GET /api/ota/tasks/{id}` - 获取任务详情
+- `GET /api/ota/tasks/device/{deviceId}` - 获取设备任务列表
+- `PUT /api/ota/tasks/{id}/status` - 更新任务状态
+- `POST /api/ota/tasks/{id}/cancel` - 取消任务
 
 ---
 
-## 📝 下一步行动
+## ✅ 前端模块
 
-### 立即可做
-1. **完善 auth 模块** - 补充剩余的 Service、Controller、Security 配置
-2. **创建数据库脚本** - 为 auth 模块创建 PostgreSQL schema
-3. **测试 device 模块** - 启动并测试设备管理 API
+### boonya-io-frontend/admin (管理后台)
+**状态**: ✅ 已完成
+**技术栈**: Vue 3 + TypeScript
+**位置**: `D:\code\boonya-io\boonya-io-frontend\admin`
 
-### 短期计划（1-2周）
-4. **实现 gateway 模块** - Spring Cloud Gateway + 路由 + 鉴权
-5. **重构 iot 模块** - 拆分为 mqtt-handler、rule-engine、alert-service
-6. **集成所有模块** - 统一 docker-compose.yml 编排
-
-### 中期计划（2-4周）
-7. **实现 analytics 模块** - 数据可视化 + 报表
-8. **实现 ota 模块** - 固件升级管理
-9. **完善规则引擎** - Drools/LiteFlow 集成
+### boonya-io-frontend/h5 (移动端)
+**状态**: ✅ 已完成
+**技术栈**: Vue 3 + TypeScript
+**位置**: `D:\code\boonya-io\boonya-io-frontend\h5`
 
 ---
 
 ## 🔧 技术栈总览
 
-| 模块 | 技术栈 | 端口 | 状态 |
+| 模块 | 技术栈 | 端口   | 状态 |
 |------|--------|------|------|
-| common | Spring Boot, Jackson | - | ✅ |
-| device | Spring Boot, MyBatis-Plus, PostgreSQL, Redis | 38080 | ✅ |
-| auth | Spring Boot, Spring Security, JWT, PostgreSQL | 8083 | 🔄 |
-| iot | Spring Boot, MQTT, TDengine, WebSocket | 18080 | ⚠️ |
+| common | Spring Boot, Jackson | -    | ✅ |
+| gateway | Spring Cloud Gateway, JWT | 8080 | ✅ |
+| iot | Spring Boot, MQTT, TDengine, WebSocket | 8081 | ✅ |
 | minio | Spring Boot, MinIO SDK | 8082 | ✅ |
-| gateway | Spring Cloud Gateway | 8080 (计划) | 🚧 |
-| analytics | Spring Boot, ECharts | 8084 (计划) | 🚧 |
-| ota | Spring Boot, MinIO | 8085 (计划) | 🚧 |
+| auth | Spring Boot, JWT, MyBatis-Plus, PostgreSQL, Redis | 8083 | ✅ |
+| analytics | Spring Boot, TDengine | 8084 | ✅ |
+| ota | Spring Boot, JPA, PostgreSQL, MinIO | 8085 | ✅ |
+| device | Spring Boot, MyBatis-Plus, PostgreSQL, Redis | 8086 | ✅ |
+| frontend/admin | Vue 3 + TypeScript | -    | ✅ |
+| frontend/h5 | Vue 3 + TypeScript | -    | ✅ |
 
 ---
 
 ## 📚 参考文档
 
-- [Common 模块使用说明](./boonya-io-common/README.md)
 - [项目整体进展](./PROJECT_STATUS.md)
-- [IoT 模块文档](./boonya-io-iot/README.md)
-- [MinIO 模块文档](./boonya-io-minio/README.md)
+- [架构设计文档](./ARCHITECTURE.md)
+- [完成总结](./COMPLETION_SUMMARY.md)
 
 ---
 
-**最后更新**: 2026-05-22  
+**最后更新**: 2026-05-22
 **维护者**: Boonya Lab Team
