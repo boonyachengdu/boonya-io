@@ -20,6 +20,8 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -31,7 +33,7 @@ public class EmbeddedMqttClientWrapper implements MqttClientWrapper, Application
 
     private final EmbeddedMqttBroker embeddedMqttBroker;
     private final MqttBrokerProperties brokerProperties;
-    private final Map<String, MessageHandler> handlers = new ConcurrentHashMap<>();
+    private final List<Subscription> subscriptions = new ArrayList<>();
     private MqttClient internalClient;
     private boolean interceptorRegistered = false;
 
@@ -77,10 +79,8 @@ public class EmbeddedMqttClientWrapper implements MqttClientWrapper, Application
                 @Override
                 public void onPublish(InterceptPublishMessage msg) {
                     String topic = msg.getTopicName();
-                    MessageHandler handler = handlers.get(topic);
-                    if (handler != null) {
-                        handler.onMessage(topic, msg.getPayload().array());
-                    }
+                    byte[] payload = readByteBuf(msg.getPayload());
+                    handleMessageWithWildcardMatching(topic, payload);
                 }
 
                 @Override
@@ -92,6 +92,56 @@ public class EmbeddedMqttClientWrapper implements MqttClientWrapper, Application
         } catch (Exception e) {
             log.error("Failed to register MQTT interceptor", e);
         }
+    }
+
+    private void handleMessageWithWildcardMatching(String topic, byte[] payload) {
+        for (Subscription subscription : subscriptions) {
+            if (matchTopic(subscription.topicFilter, topic)) {
+                try {
+                    subscription.handler.onMessage(topic, payload);
+                } catch (Exception e) {
+                    log.error("Error handling message for topic: {}", topic, e);
+                }
+            }
+        }
+    }
+
+    private boolean matchTopic(String topicFilter, String topic) {
+        String[] filterLevels = topicFilter.split("/");
+        String[] topicLevels = topic.split("/");
+
+        int i = 0;
+        for (; i < filterLevels.length; i++) {
+            String filterLevel = filterLevels[i];
+
+            if ("#".equals(filterLevel)) {
+                return true;
+            }
+
+            if (i >= topicLevels.length) {
+                return false;
+            }
+
+            if ("+".equals(filterLevel)) {
+                continue;
+            }
+
+            if (!filterLevel.equals(topicLevels[i])) {
+                return false;
+            }
+        }
+
+        return i == filterLevels.length && i == topicLevels.length;
+    }
+
+    private byte[] readByteBuf(io.netty.buffer.ByteBuf byteBuf) {
+        if (byteBuf == null) {
+            return new byte[0];
+        }
+
+        byte[] payload = new byte[byteBuf.readableBytes()];
+        byteBuf.getBytes(byteBuf.readerIndex(), payload);
+        return payload;
     }
 
     @PreDestroy
@@ -115,13 +165,14 @@ public class EmbeddedMqttClientWrapper implements MqttClientWrapper, Application
 
     @Override
     public void subscribe(String topic, MessageHandler handler) throws Exception {
-        handlers.put(topic, handler);
-        log.info("Registered handler for topic: {}", topic);
+        Subscription subscription = new Subscription(topic, handler);
+        subscriptions.add(subscription);
+        log.info("Registered handler for topic filter: {}", topic);
     }
 
     @Override
     public void disconnect() throws Exception {
-        handlers.clear();
+        subscriptions.clear();
         try {
             if (internalClient != null && internalClient.isConnected()) {
                 internalClient.disconnect();
@@ -131,5 +182,15 @@ public class EmbeddedMqttClientWrapper implements MqttClientWrapper, Application
             throw e;
         }
         log.info("Disconnected all handlers");
+    }
+
+    private static class Subscription {
+        final String topicFilter;
+        final MessageHandler handler;
+
+        Subscription(String topicFilter, MessageHandler handler) {
+            this.topicFilter = topicFilter;
+            this.handler = handler;
+        }
     }
 }
