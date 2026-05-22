@@ -24,6 +24,7 @@
         <module>boonya-io-auth</module>
         <module>boonya-io-ota</module>
         <module>boonya-io-device</module>
+        <module>boonya-io-cache</module>
     </modules>
 
     <properties>
