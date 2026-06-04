@@ -35,5 +35,11 @@ build/
 ### VS Code ###
 .vscode/
 
+### Node / frontend ###
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+
 ### Mac OS ###
 .DS_Store
