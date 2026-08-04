@@ -1,0 +1,2 @@
+com.boonya.lab.io.cache.redis.config.RedisTemplateConfig
+com.boonya.lab.io.cache.redis.config.RedissonConfig
