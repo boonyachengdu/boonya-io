@@ -1,8 +1,3 @@
--- 创建数据库
-CREATE DATABASE IF NOT EXISTS iot_ota;
-
-\c iot_ota;
-
 -- 固件表
 CREATE TABLE IF NOT EXISTS firmware (
     id BIGSERIAL PRIMARY KEY,
