@@ -14,7 +14,7 @@ spring:
       routes:
         # 认证服务
         - id: auth-service
-          uri: http://localhost:8083
+          uri: http://auth:8083
           predicates:
             - Path=/api/auth/**
           filters:
@@ -22,7 +22,7 @@ spring:
 
         # 设备管理服务
         - id: device-service
-          uri: http://localhost:8086
+          uri: http://device:8086
           predicates:
             - Path=/api/devices/**
           filters:
@@ -30,7 +30,7 @@ spring:
 
         # IoT 核心服务
         - id: iot-service
-          uri: http://localhost:8081
+          uri: http://iot-app:8081
           predicates:
             - Path=/api/iot/**
           filters:
@@ -38,7 +38,7 @@ spring:
 
         # MinIO 服务
         - id: minio-service
-          uri: http://localhost:8082
+          uri: http://minio-app:8082
           predicates:
             - Path=/api/files/**
           filters:
@@ -46,7 +46,7 @@ spring:
 
         # OTA 升级服务
         - id: ota-service
-          uri: http://localhost:8085
+          uri: http://ota:8085
           predicates:
             - Path=/api/firmware/**,/api/ota/**
           filters:
@@ -55,7 +55,7 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOrigins: "*"
+            allowedOriginPatterns: "*"
             allowedMethods:
               - GET
               - POST

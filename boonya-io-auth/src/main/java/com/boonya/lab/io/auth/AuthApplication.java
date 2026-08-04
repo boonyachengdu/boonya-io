@@ -1,13 +1,15 @@
 package com.boonya.lab.io.auth;
 
-import com.boonya.lab.io.cache.redis.config.RedisTemplateConfig;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Import;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 
-@Import({RedisTemplateConfig.class})
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+    SecurityAutoConfiguration.class,
+    UserDetailsServiceAutoConfiguration.class
+})
 @MapperScan("com.boonya.lab.io.auth.mapper")
 public class AuthApplication {
 

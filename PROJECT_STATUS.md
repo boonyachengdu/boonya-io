@@ -74,6 +74,9 @@ boonya-io/
 ```bash
 cd D:\code\boonya-io
 
+# 代码有变动一定要--build
+docker-compose up -d --build
+
 # 启动所有服务（基础设施 + 应用）
 docker-compose up -d
 

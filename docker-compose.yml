@@ -18,6 +18,11 @@ services:
     networks:
       - iot-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # TDengine - 时序数据库
   tdengine:
@@ -35,6 +40,11 @@ services:
     networks:
       - iot-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "taos -s 'show databases;' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # Redis - 缓存
   redis:
@@ -48,6 +58,11 @@ services:
     networks:
       - iot-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   # EMQX - MQTT Broker
   emqx:
@@ -69,6 +84,11 @@ services:
     networks:
       - iot-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "emqx", "ctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # MinIO - 对象存储
   minio:
@@ -86,6 +106,11 @@ services:
     networks:
       - iot-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   # ===== 应用服务 =====
 
@@ -96,14 +121,20 @@ services:
       dockerfile: Dockerfile
     container_name: iot-gateway
     depends_on:
-      - redis
-      - auth
-      - device
-      - iot-app
-      - minio-app
+      redis:
+        condition: service_healthy
+      auth:
+        condition: service_started
+      device:
+        condition: service_started
+      iot-app:
+        condition: service_started
+      minio-app:
+        condition: service_started
     ports:
       - "8080:8080"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_REDIS_HOST: redis
       JWT_SECRET: boonya-iot-jwt-secret-key-2026-very-long-secret-for-security
     networks:
@@ -117,11 +148,14 @@ services:
       dockerfile: Dockerfile
     container_name: iot-auth
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "8083:8083"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/iot_auth
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
@@ -138,11 +172,14 @@ services:
       dockerfile: Dockerfile
     container_name: iot-device
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "8086:8086"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/iot_device
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
@@ -158,9 +195,12 @@ services:
       dockerfile: Dockerfile
     container_name: iot-core
     depends_on:
-      - emqx
-      - tdengine
-      - redis
+      emqx:
+        condition: service_healthy
+      tdengine:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "8081:8081"
     environment:
@@ -179,10 +219,12 @@ services:
       dockerfile: Dockerfile
     container_name: iot-minio-service
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     ports:
       - "8082:8082"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
@@ -197,10 +239,12 @@ services:
       dockerfile: Dockerfile
     container_name: iot-analytics
     depends_on:
-      - tdengine
+      tdengine:
+        condition: service_healthy
     ports:
       - "8084:8084"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       TDENGINE_URL: jdbc:TAOS-RS://tdengine:6041/iot
     networks:
       - iot-network
@@ -213,11 +257,14 @@ services:
       dockerfile: Dockerfile
     container_name: iot-ota
     depends_on:
-      - postgres
-      - minio
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     ports:
       - "8085:8085"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/iot_ota
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres

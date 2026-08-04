@@ -1,15 +1,14 @@
 spring:
   application:
     name: boonya-io-cache
-  data:
-    redis:
-      host: 127.0.0.1
-      port: 6379
-      timeout: 5000ms
-      lettuce:
-        pool:
-          max-active: 100
-          max-idle: 8
-          max-wait: -1
-          min-idle: 0
-          time-between-eviction-runs: 1000
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 100
+        max-idle: 8
+        max-wait: -1
+        min-idle: 0
+        time-between-eviction-runs: 1000
