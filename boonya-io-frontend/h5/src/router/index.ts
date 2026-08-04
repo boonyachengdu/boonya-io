@@ -31,4 +31,17 @@ const router = createRouter({
   routes,
 })
 
+// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:50:00 -- start ----
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token')
+  if (!token && to.path !== '/login') {
+    next('/login')
+  } else if (token && to.path === '/login') {
+    next('/')
+  } else {
+    next()
+  }
+})
+// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:50:00 -- end ----
+
 export default router

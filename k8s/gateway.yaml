@@ -1,0 +1,68 @@
+# 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
+# 网关层：Gateway Deployment + LoadBalancer Service，对外暴露 8080 端口
+# 部署命令：kubectl apply -f gateway.yaml -n boonya-iot
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: boonya-io-gateway
+  namespace: boonya-iot
+  labels:
+    app: boonya-io-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: boonya-io-gateway
+  template:
+    metadata:
+      labels:
+        app: boonya-io-gateway
+    spec:
+      containers:
+        - name: boonya-io-gateway
+          image: boonya-io/boonya-io-gateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker
+            - name: SPRING_REDIS_HOST
+              value: redis
+            - name: JWT_SECRET
+              value: boonya-iot-jwt-secret-key-2026-very-long-secret-for-security
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              cpu: 1000m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: boonya-io-gateway
+  namespace: boonya-iot
+spec:
+  type: LoadBalancer
+  selector:
+    app: boonya-io-gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
+# 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----

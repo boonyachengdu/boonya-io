@@ -1,0 +1,325 @@
+# 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
+# 应用层：6 个微服务 Deployment + ClusterIP Service
+# 部署命令：kubectl apply -f apps.yaml -n boonya-iot
+# 注意：镜像名格式 boonya-io/<service>:<tag>，构建后推送到镜像仓库后修改 image 字段
+---
+# ===== Auth Service (8083) =====
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: boonya-io-auth
+  namespace: boonya-iot
+  labels:
+    app: boonya-io-auth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: boonya-io-auth
+  template:
+    metadata:
+      labels:
+        app: boonya-io-auth
+    spec:
+      containers:
+        - name: boonya-io-auth
+          image: boonya-io/boonya-io-auth:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/iot_auth
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: postgres
+            - name: SPRING_REDIS_HOST
+              value: redis
+            - name: JWT_SECRET
+              value: boonya-iot-jwt-secret-key-2026-very-long-secret-for-security
+          readinessProbe:
+            tcpSocket:
+              port: 8083
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: boonya-io-auth
+  namespace: boonya-iot
+spec:
+  selector:
+    app: boonya-io-auth
+  ports:
+    - port: 8083
+      targetPort: 8083
+  type: ClusterIP
+---
+# ===== Device Service (8086) =====
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: boonya-io-device
+  namespace: boonya-iot
+  labels:
+    app: boonya-io-device
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: boonya-io-device
+  template:
+    metadata:
+      labels:
+        app: boonya-io-device
+    spec:
+      containers:
+        - name: boonya-io-device
+          image: boonya-io/boonya-io-device:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8086
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/iot_device
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: postgres
+            - name: SPRING_REDIS_HOST
+              value: redis
+          readinessProbe:
+            tcpSocket:
+              port: 8086
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: boonya-io-device
+  namespace: boonya-iot
+spec:
+  selector:
+    app: boonya-io-device
+  ports:
+    - port: 8086
+      targetPort: 8086
+  type: ClusterIP
+---
+# ===== IoT Core Service (8081) =====
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: boonya-io-iot
+  namespace: boonya-iot
+  labels:
+    app: boonya-io-iot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: boonya-io-iot
+  template:
+    metadata:
+      labels:
+        app: boonya-io-iot
+    spec:
+      containers:
+        - name: boonya-io-iot
+          image: boonya-io/boonya-io-iot:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker
+            - name: MQTT_BROKER_HOST
+              value: tcp://emqx:1883
+            - name: TDENGINE_URL
+              value: jdbc:TAOS-RS://tdengine:6041/iot
+            - name: SPRING_REDIS_HOST
+              value: redis
+          readinessProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: boonya-io-iot
+  namespace: boonya-iot
+spec:
+  selector:
+    app: boonya-io-iot
+  ports:
+    - port: 8081
+      targetPort: 8081
+  type: ClusterIP
+---
+# ===== MinIO App Service (8082) =====
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: boonya-io-minio
+  namespace: boonya-iot
+  labels:
+    app: boonya-io-minio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: boonya-io-minio
+  template:
+    metadata:
+      labels:
+        app: boonya-io-minio
+    spec:
+      containers:
+        - name: boonya-io-minio
+          image: boonya-io/boonya-io-minio:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker
+            - name: MINIO_ENDPOINT
+              value: http://minio:9000
+            - name: MINIO_ACCESS_KEY
+              value: minioadmin
+            - name: MINIO_SECRET_KEY
+              value: minioadmin
+          readinessProbe:
+            tcpSocket:
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: boonya-io-minio
+  namespace: boonya-iot
+spec:
+  selector:
+    app: boonya-io-minio
+  ports:
+    - port: 8082
+      targetPort: 8082
+  type: ClusterIP
+---
+# ===== Analytics Service (8084) =====
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: boonya-io-analytics
+  namespace: boonya-iot
+  labels:
+    app: boonya-io-analytics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: boonya-io-analytics
+  template:
+    metadata:
+      labels:
+        app: boonya-io-analytics
+    spec:
+      containers:
+        - name: boonya-io-analytics
+          image: boonya-io/boonya-io-analytics:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8084
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker
+            - name: TDENGINE_URL
+              value: jdbc:TAOS-RS://tdengine:6041/iot
+          readinessProbe:
+            tcpSocket:
+              port: 8084
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: boonya-io-analytics
+  namespace: boonya-iot
+spec:
+  selector:
+    app: boonya-io-analytics
+  ports:
+    - port: 8084
+      targetPort: 8084
+  type: ClusterIP
+---
+# ===== OTA Service (8085) =====
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: boonya-io-ota
+  namespace: boonya-iot
+  labels:
+    app: boonya-io-ota
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: boonya-io-ota
+  template:
+    metadata:
+      labels:
+        app: boonya-io-ota
+    spec:
+      containers:
+        - name: boonya-io-ota
+          image: boonya-io/boonya-io-ota:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8085
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/iot_ota
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: postgres
+            - name: MINIO_ENDPOINT
+              value: http://minio:9000
+            - name: MINIO_ACCESS_KEY
+              value: minioadmin
+            - name: MINIO_SECRET_KEY
+              value: minioadmin
+          readinessProbe:
+            tcpSocket:
+              port: 8085
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: boonya-io-ota
+  namespace: boonya-iot
+spec:
+  selector:
+    app: boonya-io-ota
+  ports:
+    - port: 8085
+      targetPort: 8085
+  type: ClusterIP
+# 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----

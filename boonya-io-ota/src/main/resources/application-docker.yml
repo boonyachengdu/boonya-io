@@ -36,3 +36,16 @@ springdoc:
 logging:
   level:
     com.boonya.lab.io.ota: DEBUG
+
+# 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ----
+# Seata 分布式事务配置
+seata:
+  enabled: true
+  application-id: boonya-io-ota
+  tx-service-group: boonya-io-tx-group
+  service:
+    vgroup-mapping:
+      boonya-io-tx-group: default
+    grouplist:
+      default: seata:8091
+# 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ----

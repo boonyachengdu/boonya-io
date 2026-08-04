@@ -26,30 +26,53 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import request from '@/utils/request'
+// 修改内容：修改人：pengjunlin 时间：2026-08-04 18:20:00 -- start ----
+import { getDeviceList } from '@/api/device'
+import type { Device, DeviceQueryParams } from '@/api/device'
+// 修改内容：修改人：pengjunlin 时间：2026-08-04 18:20:00 -- end ----
 
 const router = useRouter()
-const devices = ref([])
+// 修改内容：修改人：pengjunlin 时间：2026-08-04 18:20:00 -- start ----
+const devices = ref<Device[]>([])
+// 修改内容：修改人：pengjunlin 时间：2026-08-04 18:20:00 -- end ----
 const loading = ref(false)
 const finished = ref(false)
 const refreshing = ref(false)
 
+// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:50:00 -- start ----
+const page = ref(1)
+const pageSize = 20
+
 const onLoad = async () => {
   try {
-    const data = await request.get('/devices', { params: { page: 1, size: 20 } })
-    devices.value = data.records
-    loading.value = false
-    finished.value = true
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:20:00 -- start ----
+    const data = await getDeviceList({ pageNum: page.value, pageSize })
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:20:00 -- end ----
+    const records = data?.records || []
+    if (records.length > 0) {
+      devices.value.push(...records)
+      page.value++
+    }
+    const total = data?.total
+    if (records.length < pageSize || (typeof total === 'number' && devices.value.length >= total)) {
+      finished.value = true
+    }
   } catch (error) {
+    console.error(error)
+  } finally {
     loading.value = false
   }
 }
 
 const onRefresh = async () => {
+  page.value = 1
+  devices.value = []
   finished.value = false
+  loading.value = true
   await onLoad()
   refreshing.value = false
 }
+// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:50:00 -- end ----
 
 const goToDetail = (id: number) => {
   router.push(`/device/${id}`)

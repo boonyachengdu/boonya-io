@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS device (
     status VARCHAR(16) DEFAULT 'inactive',
     last_heartbeat TIMESTAMP,
     group_id BIGINT,
+    -- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ----
+    tenant_id BIGINT DEFAULT 0,
+    -- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ----
     location VARCHAR(256),
     description TEXT,
     auth_token VARCHAR(128),
@@ -23,6 +26,9 @@ CREATE TABLE IF NOT EXISTS device (
 CREATE INDEX idx_device_id ON device(device_id);
 CREATE INDEX idx_status ON device(status);
 CREATE INDEX idx_group_id ON device(group_id);
+-- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ----
+CREATE INDEX idx_tenant_id ON device(tenant_id);
+-- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ----
 
 CREATE TABLE IF NOT EXISTS device_group (
                                             id BIGSERIAL PRIMARY KEY,

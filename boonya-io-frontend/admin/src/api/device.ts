@@ -1,31 +1,61 @@
 import request from '@/utils/request'
 
+// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:10:00 -- start ----
+// 修正设备列表端点为 /devices/query，参数改为 pageNum/pageSize，支持搜索条件
+
 // 设备信息
 export interface Device {
   id: number
   deviceId: string
   deviceName: string
   deviceType: string
+  model?: string
+  firmwareVersion?: string
   status: string
-  authToken: string
-  description: string
+  lastHeartbeat?: string
+  groupId?: number
+  location?: string
+  description?: string
+  authToken?: string
   createTime: string
-  updateTime: string
+  updateTime?: string
 }
 
 // 设备注册请求
 export interface DeviceRegisterRequest {
+  deviceId: string
   deviceName: string
-  deviceType: string
-  protocol?: string
+  deviceType?: string
+  model?: string
+  location?: string
   description?: string
 }
 
+// 设备查询参数
+export interface DeviceQueryParams {
+  pageNum?: number
+  pageSize?: number
+  deviceId?: string
+  deviceName?: string
+  deviceType?: string
+  status?: string
+  groupId?: number
+}
+
+// 分页结果
+export interface PageResult<T> {
+  records: T[]
+  total: number
+  current: number
+  size: number
+  pages?: number
+}
+
 /**
- * 获取设备列表
+ * 获取设备列表（分页 + 搜索）
  */
-export function getDeviceList(params?: { page?: number; size?: number }) {
-  return request.get<{ records: Device[]; total: number }>('/devices', { params })
+export function getDeviceList(params?: DeviceQueryParams) {
+  return request.get<PageResult<Device>>('/devices/query', { params })
 }
 
 /**
@@ -45,8 +75,8 @@ export function registerDevice(data: DeviceRegisterRequest) {
 /**
  * 激活设备
  */
-export function activateDevice(deviceId: string, authToken: string) {
-  return request.post(`/devices/${deviceId}/activate`, null, { params: { authToken } })
+export function activateDevice(deviceId: string) {
+  return request.post(`/devices/${deviceId}/activate`)
 }
 
 /**
@@ -57,8 +87,23 @@ export function deleteDevice(id: number) {
 }
 
 /**
- * 更新设备
+ * 更新设备状态
  */
-export function updateDevice(id: number, data: Partial<Device>) {
-  return request.put<Device>(`/devices/${id}`, data)
+export function updateDeviceStatus(id: number, status: string) {
+  return request.put(`/devices/${id}`, null, { params: { status } })
 }
+
+/**
+ * 获取在线设备列表
+ */
+export function getOnlineDevices() {
+  return request.get<Device[]>('/devices/online')
+}
+
+/**
+ * 获取设备状态
+ */
+export function getDeviceStatus(deviceId: string) {
+  return request.get<{ deviceId: string; status: string }>(`/devices/${deviceId}/status`)
+}
+// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:10:00 -- end ----

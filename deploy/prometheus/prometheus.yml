@@ -1,0 +1,30 @@
+# 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ----
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'boonya-io-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['gateway:8080']
+
+  - job_name: 'boonya-io-auth'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['auth:8083']
+
+  - job_name: 'boonya-io-device'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['device:8086']
+
+  - job_name: 'boonya-io-iot'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['iot-app:8081']
+
+  - job_name: 'boonya-io-ota'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['ota:8085']
+# 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ----

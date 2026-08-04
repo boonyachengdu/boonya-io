@@ -1,0 +1,33 @@
+# 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
+# Ingress 规则（可选）：统一通过域名访问 Gateway
+# 部署命令：kubectl apply -f ingress.yaml -n boonya-iot
+# 前提：集群已安装 Ingress Controller（如 ingress-nginx）
+# 使用：将 boonya-iot.local 解析到 Ingress Controller 的外网 IP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: boonya-io-ingress
+  namespace: boonya-iot
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "*"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: boonya-iot.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: boonya-io-gateway
+                port:
+                  number: 8080
+# 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----

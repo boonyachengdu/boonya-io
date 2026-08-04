@@ -25,31 +25,41 @@ public class RuleController {
         return Result.success("规则创建成功", null);
     }
 
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:10:00 -- start ----
     @GetMapping
     @Operation(summary = "获取所有规则", description = "获取所有已注册的规则")
     public Result<List<Rule>> getAllRules() {
-        // 这里需要 RuleEngine 提供获取所有规则的方法
-        return Result.success(List.of());
+        return Result.success(ruleEngine.getAllRules());
     }
 
     @PutMapping("/{ruleId}/enable")
     @Operation(summary = "启用规则", description = "启用指定的规则")
     public Result<Void> enableRule(@PathVariable String ruleId) {
-        // TODO: 实现启用规则逻辑
-        return Result.success("规则已启用", null);
+        boolean success = ruleEngine.enableRule(ruleId);
+        if (success) {
+            return Result.success("规则已启用", null);
+        }
+        return Result.error(404, "规则不存在: " + ruleId);
     }
 
     @PutMapping("/{ruleId}/disable")
     @Operation(summary = "禁用规则", description = "禁用指定的规则")
     public Result<Void> disableRule(@PathVariable String ruleId) {
-        // TODO: 实现禁用规则逻辑
-        return Result.success("规则已禁用", null);
+        boolean success = ruleEngine.disableRule(ruleId);
+        if (success) {
+            return Result.success("规则已禁用", null);
+        }
+        return Result.error(404, "规则不存在: " + ruleId);
     }
 
     @DeleteMapping("/{ruleId}")
     @Operation(summary = "删除规则", description = "删除指定的规则")
     public Result<Void> deleteRule(@PathVariable String ruleId) {
-        // TODO: 实现删除规则逻辑
-        return Result.success("规则已删除", null);
+        boolean success = ruleEngine.deleteRule(ruleId);
+        if (success) {
+            return Result.success("规则已删除", null);
+        }
+        return Result.error(404, "规则不存在: " + ruleId);
     }
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:10:00 -- end ----
 }

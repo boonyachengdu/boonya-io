@@ -24,7 +24,8 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-<!--        &lt;!&ndash; Nacos 服务发现 + 配置 &ndash;&gt;
+        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ---- -->
+        <!-- Nacos 服务发现 + 配置 -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
@@ -34,17 +35,18 @@
             <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
         </dependency>
 
-        &lt;!&ndash; 负载均衡 &ndash;&gt;
+        <!-- 负载均衡 -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-loadbalancer</artifactId>
         </dependency>
 
-        &lt;!&ndash; OpenFeign &ndash;&gt;
+        <!-- OpenFeign -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
-        </dependency>-->
+        </dependency>
+        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ---- -->
 
         <!-- lombok -->
         <dependency>
@@ -132,6 +134,25 @@
             <scope>compile</scope>
         </dependency>
 
+        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ---- -->
+        <!-- Kafka 消息队列 -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ---- -->
+
+        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ---- -->
+        <!-- Actuator + Prometheus 指标监控 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ---- -->
 
     </dependencies>
 

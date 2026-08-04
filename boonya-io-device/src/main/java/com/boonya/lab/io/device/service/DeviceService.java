@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.boonya.lab.io.common.constant.CommonConstants;
 import com.boonya.lab.io.common.exception.ResourceNotFoundException;
+import com.boonya.lab.io.common.tenant.TenantContext;
 import com.boonya.lab.io.common.util.TokenUtils;
 import com.boonya.lab.io.device.dto.DeviceQueryRequest;
 import com.boonya.lab.io.device.dto.DeviceRegisterRequest;
@@ -117,6 +118,14 @@ public class DeviceService {
 
     public Page<DeviceResponse> queryDevices(DeviceQueryRequest request) {
         LambdaQueryWrapper<Device> wrapper = new LambdaQueryWrapper<>();
+
+        // 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ----
+        // 多租户过滤：自动按当前租户ID过滤数据
+        Long tenantId = TenantContext.getTenantId();
+        if (tenantId != null && tenantId > 0) {
+            wrapper.eq(Device::getTenantId, tenantId);
+        }
+        // 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ----
 
         if (request.getDeviceId() != null && !request.getDeviceId().isEmpty()) {
             wrapper.like(Device::getDeviceId, request.getDeviceId());

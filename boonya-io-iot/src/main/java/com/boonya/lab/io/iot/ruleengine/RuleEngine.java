@@ -4,8 +4,11 @@ import com.boonya.lab.io.iot.event.OverTempEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,6 +23,10 @@ public class RuleEngine {
     private final ApplicationEventPublisher eventPublisher;
     private final Map<String, Rule> rules = new ConcurrentHashMap<>();
 
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:10:00 -- start ----
+    // 注入 WebSocket 用于 FORWARD 动作转发
+    private final SimpMessagingTemplate websocket;
+
     /**
      * 注册规则
      */
@@ -27,6 +34,52 @@ public class RuleEngine {
         rules.put(rule.getRuleId(), rule);
         log.info("Rule registered: {} - {}", rule.getRuleId(), rule.getRuleName());
     }
+
+    /**
+     * 获取所有规则
+     */
+    public List<Rule> getAllRules() {
+        return new ArrayList<>(rules.values());
+    }
+
+    /**
+     * 启用规则
+     */
+    public boolean enableRule(String ruleId) {
+        Rule rule = rules.get(ruleId);
+        if (rule == null) {
+            return false;
+        }
+        rule.setEnabled(true);
+        log.info("Rule enabled: {}", ruleId);
+        return true;
+    }
+
+    /**
+     * 禁用规则
+     */
+    public boolean disableRule(String ruleId) {
+        Rule rule = rules.get(ruleId);
+        if (rule == null) {
+            return false;
+        }
+        rule.setEnabled(false);
+        log.info("Rule disabled: {}", ruleId);
+        return true;
+    }
+
+    /**
+     * 删除规则
+     */
+    public boolean deleteRule(String ruleId) {
+        Rule removed = rules.remove(ruleId);
+        if (removed != null) {
+            log.info("Rule deleted: {}", ruleId);
+            return true;
+        }
+        return false;
+    }
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:10:00 -- end ----
 
     /**
      * 评估设备数据
@@ -38,6 +91,16 @@ public class RuleEngine {
                 .forEach(rule -> {
                     try {
                         if (matchesCondition(rule, data)) {
+                            // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
+                            // 冷却时间检查：若在冷却期内则跳过本次触发
+                            if (isInCooldown(rule)) {
+                                log.debug("Rule {} skipped due to cooldown (lastTriggerTime={}, cooldownSeconds={})",
+                                        rule.getRuleId(), rule.getLastTriggerTime(), rule.getCooldownSeconds());
+                                return;
+                            }
+                            // 触发动作前更新上次触发时间
+                            rule.setLastTriggerTime(System.currentTimeMillis());
+                            // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----
                             executeAction(rule, deviceId, data);
                         }
                     } catch (Exception e) {
@@ -46,10 +109,30 @@ public class RuleEngine {
                 });
     }
 
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
+    /**
+     * 判断规则是否处于冷却期内
+     */
+    private boolean isInCooldown(Rule rule) {
+        if (rule.getCooldownSeconds() <= 0 || rule.getLastTriggerTime() <= 0) {
+            return false;
+        }
+        long elapsedMillis = System.currentTimeMillis() - rule.getLastTriggerTime();
+        return elapsedMillis < rule.getCooldownSeconds() * 1000L;
+    }
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----
+
     /**
      * 检查是否满足条件
      */
     private boolean matchesCondition(Rule rule, Map<String, Object> data) {
+        // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
+        // 多条件模式：当 metrics 不为空时使用多指标逻辑
+        if (rule.getMetrics() != null && !rule.getMetrics().isEmpty()) {
+            return matchesMultiCondition(rule, data);
+        }
+        // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----
+
         Object value = data.get(rule.getMetric());
         if (value == null) {
             return false;
@@ -64,9 +147,65 @@ public class RuleEngine {
             case ">=" -> numericValue >= threshold;
             case "<=" -> numericValue <= threshold;
             case "==" -> Math.abs(numericValue - threshold) < 0.001;
+            case "!=" -> Math.abs(numericValue - threshold) >= 0.001;
             default -> false;
         };
     }
+
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
+    /**
+     * 多条件匹配：根据 logicOperator (AND/OR) 组合多指标判断
+     * - 默认逻辑运算符为 AND
+     * - 每个指标优先从 thresholds 取阈值，从 operators 取运算符；
+     *   若 operators 未配置则回退到 rule.operator
+     */
+    private boolean matchesMultiCondition(Rule rule, Map<String, Object> data) {
+        String logic = rule.getLogicOperator() == null ? "AND" : rule.getLogicOperator().toUpperCase();
+        boolean useAnd = "AND".equals(logic);
+
+        for (String metric : rule.getMetrics()) {
+            Object value = data.get(metric);
+            boolean matched = false;
+            if (value != null && value instanceof Number) {
+                double numericValue = ((Number) value).doubleValue();
+                Double threshold = rule.getThresholds() != null ? rule.getThresholds().get(metric) : null;
+                if (threshold != null) {
+                    String op = (rule.getOperators() != null && rule.getOperators().get(metric) != null)
+                            ? rule.getOperators().get(metric)
+                            : rule.getOperator();
+                    matched = compareValue(numericValue, threshold, op);
+                }
+            }
+
+            if (useAnd && !matched) {
+                return false; // AND 模式下任一条件不满足即整体不满足
+            }
+            if (!useAnd && matched) {
+                return true;  // OR 模式下任一条件满足即整体满足
+            }
+        }
+        // AND 模式全部满足返回 true；OR 模式全部不满足返回 false
+        return useAnd;
+    }
+
+    /**
+     * 根据运算符比较数值
+     */
+    private boolean compareValue(double numericValue, double threshold, String operator) {
+        if (operator == null) {
+            return false;
+        }
+        return switch (operator) {
+            case ">" -> numericValue > threshold;
+            case "<" -> numericValue < threshold;
+            case ">=" -> numericValue >= threshold;
+            case "<=" -> numericValue <= threshold;
+            case "==" -> Math.abs(numericValue - threshold) < 0.001;
+            case "!=" -> Math.abs(numericValue - threshold) >= 0.001;
+            default -> false;
+        };
+    }
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----
 
     /**
      * 执行动作
@@ -97,21 +236,43 @@ public class RuleEngine {
                 deviceId, temp, rule.getThreshold());
     }
 
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:10:00 -- start ----
     /**
-     * 处理转发动作
+     * 处理转发动作 - 通过 WebSocket 推送到指定 topic
      */
     private void handleForward(Rule rule, String deviceId, Map<String, Object> data) {
-        // TODO: 实现数据转发到其他系统
-        log.info("Forwarding data for device {}: {}", deviceId, data);
+        String targetTopic = "/topic/device/" + deviceId;
+        if (rule.getActionConfig() != null && rule.getActionConfig().containsKey("targetTopic")) {
+            targetTopic = (String) rule.getActionConfig().get("targetTopic");
+        }
+        websocket.convertAndSend(targetTopic, Map.of(
+                "deviceId", deviceId,
+                "data", data,
+                "ruleId", rule.getRuleId(),
+                "timestamp", System.currentTimeMillis()
+        ));
+        log.info("Forwarded data for device {} to topic: {}", deviceId, targetTopic);
     }
 
     /**
-     * 处理存储动作
+     * 处理存储动作 - 将数据写入特殊存储（通过 WebSocket 推送到 /topic/stored）
      */
     private void handleStore(Rule rule, String deviceId, Map<String, Object> data) {
-        // TODO: 实现特殊存储逻辑
-        log.info("Storing data for device {}: {}", deviceId, data);
+        String storageKey = "rule_store_" + rule.getRuleId();
+        if (rule.getActionConfig() != null && rule.getActionConfig().containsKey("storageKey")) {
+            storageKey = (String) rule.getActionConfig().get("storageKey");
+        }
+        log.info("Storing data for device {} with storage key: {}", deviceId, storageKey);
+        // 推送存储通知到 WebSocket
+        websocket.convertAndSend("/topic/stored", Map.of(
+                "storageKey", storageKey,
+                "deviceId", deviceId,
+                "ruleId", rule.getRuleId(),
+                "data", data,
+                "timestamp", System.currentTimeMillis()
+        ));
     }
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:10:00 -- end ----
 
     /**
      * 初始化默认规则

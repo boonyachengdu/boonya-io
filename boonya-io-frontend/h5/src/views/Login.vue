@@ -37,7 +37,9 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import request from '@/utils/request'
+// 修改内容：修改人：pengjunlin 时间：2026-08-04 18:20:00 -- start ----
+import { login } from '@/api/auth'
+// 修改内容：修改人：pengjunlin 时间：2026-08-04 18:20:00 -- end ----
 
 const router = useRouter()
 const loading = ref(false)
@@ -47,11 +49,14 @@ const password = ref('admin123')
 const onSubmit = async () => {
   loading.value = true
   try {
-    const data = await request.post('/auth/login', {
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:20:00 -- start ----
+    const data = await login({
       username: username.value,
       password: password.value,
     })
     localStorage.setItem('token', data.accessToken)
+    localStorage.setItem('refreshToken', data.refreshToken)
+    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:20:00 -- end ----
     showToast('登录成功')
     router.push('/')
   } catch (error) {

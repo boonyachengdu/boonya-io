@@ -1,0 +1,386 @@
+# 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
+# 基础设施层：PostgreSQL + Redis + EMQX + TDengine + MinIO + Nacos
+# 部署命令：kubectl apply -f infra.yaml -n boonya-iot
+---
+# ===== PostgreSQL =====
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: boonya-iot
+  labels:
+    app: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+              name: pgsql
+          env:
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value: postgres
+            - name: POSTGRES_DB
+              value: iot_device
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 10
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: boonya-iot
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+  clusterIP: None
+---
+# ===== Redis =====
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: boonya-iot
+  labels:
+    app: redis
+spec:
+  serviceName: redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          args: ["redis-server", "--appendonly", "yes"]
+          ports:
+            - containerPort: 6379
+              name: redis
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 5
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: boonya-iot
+spec:
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+  clusterIP: None
+---
+# ===== EMQX (MQTT Broker) =====
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emqx
+  namespace: boonya-iot
+  labels:
+    app: emqx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emqx
+  template:
+    metadata:
+      labels:
+        app: emqx
+    spec:
+      containers:
+        - name: emqx
+          image: emqx/emqx:5.4
+          ports:
+            - containerPort: 1883
+              name: mqtt
+            - containerPort: 8083
+              name: ws
+            - containerPort: 8883
+              name: mqtts
+            - containerPort: 18083
+              name: dashboard
+          env:
+            - name: EMQX_ALLOW_ANONYMOUS
+              value: "true"
+            - name: EMQX_DEFAULT_USERNAME
+              value: admin
+            - name: EMQX_DEFAULT_PASSWORD
+              value: public
+          readinessProbe:
+            tcpSocket:
+              port: 1883
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: emqx
+  namespace: boonya-iot
+spec:
+  selector:
+    app: emqx
+  ports:
+    - name: mqtt
+      port: 1883
+      targetPort: 1883
+    - name: ws
+      port: 8083
+      targetPort: 8083
+    - name: mqtts
+      port: 8883
+      targetPort: 8883
+    - name: dashboard
+      port: 18083
+      targetPort: 18083
+---
+# ===== TDengine =====
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tdengine
+  namespace: boonya-iot
+  labels:
+    app: tdengine
+spec:
+  serviceName: tdengine
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tdengine
+  template:
+    metadata:
+      labels:
+        app: tdengine
+    spec:
+      containers:
+        - name: tdengine
+          image: tdengine/tdengine:latest
+          ports:
+            - containerPort: 6030
+              name: native
+            - containerPort: 6041
+              name: rest
+            - containerPort: 6060
+              name: taoskeeper
+          env:
+            - name: TAOS_FIRST_EP
+              value: tdengine:6030
+          volumeMounts:
+            - name: tdengine-data
+              mountPath: /var/lib/taos
+            - name: tdengine-log
+              mountPath: /var/log/taos
+          readinessProbe:
+            tcpSocket:
+              port: 6041
+            initialDelaySeconds: 20
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata:
+        name: tdengine-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+    - metadata:
+        name: tdengine-log
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tdengine
+  namespace: boonya-iot
+spec:
+  selector:
+    app: tdengine
+  ports:
+    - name: native
+      port: 6030
+      targetPort: 6030
+    - name: rest
+      port: 6041
+      targetPort: 6041
+    - name: taoskeeper
+      port: 6060
+      targetPort: 6060
+  clusterIP: None
+---
+# ===== MinIO =====
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+  namespace: boonya-iot
+  labels:
+    app: minio
+spec:
+  serviceName: minio
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:latest
+          args: ["server", "/data", "--console-address", ":9001"]
+          ports:
+            - containerPort: 9000
+              name: api
+            - containerPort: 9001
+              name: console
+          env:
+            - name: MINIO_ROOT_USER
+              value: minioadmin
+            - name: MINIO_ROOT_PASSWORD
+              value: minioadmin
+          volumeMounts:
+            - name: minio-data
+              mountPath: /data
+          readinessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata:
+        name: minio-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: boonya-iot
+spec:
+  selector:
+    app: minio
+  ports:
+    - name: api
+      port: 9000
+      targetPort: 9000
+    - name: console
+      port: 9001
+      targetPort: 9001
+---
+# ===== Nacos =====
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nacos
+  namespace: boonya-iot
+  labels:
+    app: nacos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nacos
+  template:
+    metadata:
+      labels:
+        app: nacos
+    spec:
+      containers:
+        - name: nacos
+          image: nacos/nacos-server:v2.4.3-slim
+          ports:
+            - containerPort: 8848
+              name: http
+            - containerPort: 9848
+              name: grpc
+          env:
+            - name: MODE
+              value: standalone
+            - name: JVM_XMS
+              value: 256m
+            - name: JVM_XMX
+              value: 512m
+          readinessProbe:
+            tcpSocket:
+              port: 8848
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nacos
+  namespace: boonya-iot
+spec:
+  selector:
+    app: nacos
+  ports:
+    - name: http
+      port: 8848
+      targetPort: 8848
+    - name: grpc
+      port: 9848
+      targetPort: 9848
+# 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----

@@ -64,6 +64,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ---- -->
+        <!-- Seata 分布式事务 -->
+        <dependency>
+            <groupId>io.seata</groupId>
+            <artifactId>seata-spring-boot-starter</artifactId>
+        </dependency>
+        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ---- -->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

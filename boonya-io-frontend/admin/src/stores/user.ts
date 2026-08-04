@@ -4,20 +4,27 @@ import { login as loginApi, logout as logoutApi } from '@/api/auth'
 import type { LoginRequest, LoginResponse } from '@/api/auth'
 
 export const useUserStore = defineStore('user', () => {
+  // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:00:00 -- start ----
   const token = ref<string>(localStorage.getItem('token') || '')
-  const userInfo = ref<any>(null)
+  const userInfo = ref<any>(localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')!) : null)
+  // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:00:00 -- end ----
 
   const isLoggedIn = computed(() => !!token.value)
 
   /**
    * 登录
    */
+  // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:00:00 -- start ----
+  // 登录时存储 refreshToken，登出时清除
   async function login(loginData: LoginRequest) {
     try {
       const data: LoginResponse = await loginApi(loginData)
       token.value = data.accessToken
       userInfo.value = data.userInfo
       localStorage.setItem('token', data.accessToken)
+      localStorage.setItem('refreshToken', data.refreshToken)
+      // 持久化 userInfo 以支持刷新页面后保留
+      localStorage.setItem('userInfo', JSON.stringify(data.userInfo))
       return data
     } catch (error) {
       throw error
@@ -34,8 +41,11 @@ export const useUserStore = defineStore('user', () => {
       token.value = ''
       userInfo.value = null
       localStorage.removeItem('token')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('userInfo')
     }
   }
+  // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:00:00 -- end ----
 
   /**
    * 设置用户信息
