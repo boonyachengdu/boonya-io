@@ -1,7 +1,3 @@
-CREATE DATABASE IF NOT EXISTS iot_device;
-
-\c iot_device;
-
 CREATE TABLE IF NOT EXISTS device (
                                       id BIGSERIAL PRIMARY KEY,
                                       device_id VARCHAR(64) UNIQUE NOT NULL,

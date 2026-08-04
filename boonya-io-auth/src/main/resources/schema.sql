@@ -1,8 +1,3 @@
--- 创建数据库
-CREATE DATABASE IF NOT EXISTS iot_auth;
-
-\c iot_auth;
-
 -- 用户表
 CREATE TABLE IF NOT EXISTS sys_user (
     id BIGSERIAL PRIMARY KEY,
@@ -46,7 +41,7 @@ CREATE INDEX idx_role_id ON sys_user_role(role_id);
 
 -- 插入默认管理员用户 (密码: admin123)
 INSERT INTO sys_user (username, password, email, real_name, status)
-VALUES ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', 'admin@example.com', '系统管理员', 'active')
+VALUES ('admin', '$2a$10$T5otds6e2hRTufPuxxzH..Jc430PiukykE0Nqv0uCmdFfm1NUqc1K', 'admin@example.com', '系统管理员', 'active')
 ON CONFLICT (username) DO NOTHING;
 
 -- 插入默认角色
