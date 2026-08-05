@@ -43,6 +43,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/analytics/DataAnalytics.vue'),
         meta: { title: '数据分析', icon: 'TrendCharts' },
       },
+      {
+        path: 'energy',
+        name: 'EnergyDashboard',
+        component: () => import('@/views/energy/EnergyDashboard.vue'),
+        meta: { title: '能碳管理', icon: 'Sunny' },
+      },
     ],
   },
 ]
