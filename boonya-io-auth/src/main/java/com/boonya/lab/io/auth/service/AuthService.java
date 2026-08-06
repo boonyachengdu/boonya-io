@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -64,11 +66,13 @@ public class AuthService {
         log.info("用户登录成功: {}", user.getUsername());
 
         // 构建响应
+        List<String> roles = Collections.singletonList("admin");
         LoginResponse.UserInfo userInfo = LoginResponse.UserInfo.builder()
-                .userId(user.getId())
+                .id(user.getId())
                 .username(user.getUsername())
                 .realName(user.getRealName())
                 .email(user.getEmail())
+                .roles(roles)
                 .build();
 
         return LoginResponse.builder()
@@ -113,8 +117,12 @@ public class AuthService {
      */
     @Transactional
     public void logout(String accessToken) {
-        // 将 Token 加入黑名单
-        long expiration = jwtUtils.getClaimsFromToken(accessToken).getExpiration().getTime() - System.currentTimeMillis();
+        io.jsonwebtoken.Claims claims = jwtUtils.getClaimsFromToken(accessToken);
+        if (claims == null) {
+            log.warn("登出时 Token 无效或已过期，跳过黑名单写入");
+            return;
+        }
+        long expiration = claims.getExpiration().getTime() - System.currentTimeMillis();
         if (expiration > 0) {
             redisTemplate.opsForValue().set(
                 TOKEN_BLACKLIST_KEY + accessToken,

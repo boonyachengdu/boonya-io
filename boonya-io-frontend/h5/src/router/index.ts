@@ -22,6 +22,11 @@ const routes: RouteRecordRaw[] = [
         name: 'DeviceDetail',
         component: () => import('@/views/DeviceDetail.vue'),
       },
+      {
+        path: 'alerts',
+        name: 'Alerts',
+        component: () => import('@/views/AlertList.vue'),
+      },
     ],
   },
 ]
@@ -31,7 +36,6 @@ const router = createRouter({
   routes,
 })
 
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:50:00 -- start ----
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   if (!token && to.path !== '/login') {
@@ -42,6 +46,5 @@ router.beforeEach((to, from, next) => {
     next()
   }
 })
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:50:00 -- end ----
 
 export default router

@@ -4,22 +4,23 @@ server:
 spring:
   application:
     name: boonya-io-device
-  
+  cloud:
+    nacos:
+      discovery:
+        server-addr: nacos:8848
+        namespace: public
+  # 表结构由 docker/postgres/init-databases.sh 统一初始化，应用不再重复执行 schema.sql
   datasource:
     url: jdbc:postgresql://postgres:5432/iot_device
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
-    
-  sql:
-    init:
-      mode: always
-      schema-locations: classpath:schema.sql
-
-  redis:
-    host: redis
-    port: 6379
-    database: 1
+  # Spring Boot 3.x Redis 属性前缀从 spring.redis 迁移到 spring.data.redis
+  data:
+    redis:
+      host: redis
+      port: 6379
+      database: 1
 
 mybatis-plus:
   configuration:
@@ -41,3 +42,13 @@ springdoc:
 logging:
   level:
     com.boonya.lab.io.device: DEBUG
+# Seata 分布式事务配置（与 ota 服务对齐）
+seata:
+  enabled: true
+  application-id: boonya-io-device
+  tx-service-group: boonya-io-tx-group
+  service:
+    vgroup-mapping:
+      boonya-io-tx-group: default
+    grouplist:
+      default: seata:8091

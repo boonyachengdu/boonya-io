@@ -1,4 +1,3 @@
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 18:20:00 -- start ----
 import request from '@/utils/request'
 
 export interface LoginRequest {
@@ -31,4 +30,3 @@ export function logout() {
 export function refreshToken(refreshToken: string) {
   return request.post<LoginResponse>('/auth/refresh', { refreshToken })
 }
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 18:20:00 -- end ----

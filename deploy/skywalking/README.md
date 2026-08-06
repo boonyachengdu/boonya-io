@@ -1,7 +1,5 @@
 # SkyWalking 链路追踪集成说明
 
-> 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00
-
 本文档说明如何在 boonya-io 项目中集成 Apache SkyWalking Java Agent，实现对微服务调用的全链路追踪。
 
 ## 一、架构说明

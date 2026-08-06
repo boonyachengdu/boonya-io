@@ -1,6 +1,5 @@
 import request from '@/utils/request'
 
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:10:00 -- start ----
 // 修正设备列表端点为 /devices/query，参数改为 pageNum/pageSize，支持搜索条件
 
 // 设备信息
@@ -106,4 +105,3 @@ export function getOnlineDevices() {
 export function getDeviceStatus(deviceId: string) {
   return request.get<{ deviceId: string; status: string }>(`/devices/${deviceId}/status`)
 }
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:10:00 -- end ----

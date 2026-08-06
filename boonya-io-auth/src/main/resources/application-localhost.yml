@@ -4,22 +4,18 @@ server:
 spring:
   application:
     name: boonya-io-auth
-  
+  # 表结构由 docker/postgres/init-databases.sh 统一初始化，应用不再重复执行 schema.sql
   datasource:
     url: jdbc:postgresql://localhost:5432/iot_auth
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
-    
-  sql:
-    init:
-      mode: always
-      schema-locations: classpath:schema.sql
-    
-  redis:
-    host: localhost
-    port: 6379
-    database: 2
+  # Spring Boot 3.x Redis 属性前缀从 spring.redis 迁移到 spring.data.redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 2
 
 mybatis-plus:
   configuration:

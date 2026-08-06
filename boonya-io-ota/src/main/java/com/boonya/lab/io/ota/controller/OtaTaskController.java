@@ -1,11 +1,13 @@
 package com.boonya.lab.io.ota.controller;
 
+import com.boonya.lab.io.common.response.PageResult;
 import com.boonya.lab.io.common.response.Result;
 import com.boonya.lab.io.ota.entity.OtaTask;
 import com.boonya.lab.io.ota.service.OtaTaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,6 +28,23 @@ public class OtaTaskController {
             @RequestParam Long firmwareId) {
         OtaTask task = otaTaskService.createOtaTask(deviceId, firmwareId);
         return Result.success("OTA任务创建成功", task);
+    }
+
+    @GetMapping
+    @Operation(summary = "全局分页查询OTA任务", description = "管理员查询全部OTA任务，支持按设备ID和状态筛选，支持分页")
+    public Result<PageResult<OtaTask>> queryTasks(
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "20") int pageSize,
+            @RequestParam(required = false) String deviceId,
+            @RequestParam(required = false) String status) {
+        Page<OtaTask> page = otaTaskService.queryTasks(pageNum, pageSize, deviceId, status);
+        PageResult<OtaTask> pageResult = PageResult.of(
+                page.getNumber() + 1L,
+                page.getSize(),
+                page.getTotalElements(),
+                page.getContent()
+        );
+        return Result.success(pageResult);
     }
 
     @GetMapping("/{id}")

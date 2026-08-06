@@ -44,10 +44,28 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '数据分析', icon: 'TrendCharts' },
       },
       {
+        path: 'alerts',
+        name: 'Alerts',
+        component: () => import('@/views/alerts/AlertList.vue'),
+        meta: { title: '实时告警', icon: 'Bell' },
+      },
+      {
         path: 'energy',
         name: 'EnergyDashboard',
         component: () => import('@/views/energy/EnergyDashboard.vue'),
         meta: { title: '能碳管理', icon: 'Sunny' },
+      },
+      {
+        path: 'system/users',
+        name: 'UserList',
+        component: () => import('@/views/system/UserList.vue'),
+        meta: { title: '用户管理', icon: 'UserFilled' },
+      },
+      {
+        path: 'ai-analysis',
+        name: 'AiAnalysis',
+        component: () => import('@/views/ai/AiAnalysis.vue'),
+        meta: { title: 'AI分析', icon: 'Cpu' },
       },
     ],
   },

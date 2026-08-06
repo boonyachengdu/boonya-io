@@ -1,5 +1,10 @@
 package com.boonya.lab.io.analytics.controller;
 
+import com.boonya.lab.io.analytics.dto.AreaRankingDTO;
+import com.boonya.lab.io.analytics.dto.EnergyAlarmDTO;
+import com.boonya.lab.io.analytics.dto.EnergyDeviceStatusDTO;
+import com.boonya.lab.io.analytics.dto.EnergyOverviewDTO;
+import com.boonya.lab.io.analytics.dto.EnergyTrendItemDTO;
 import com.boonya.lab.io.analytics.service.EnergyAnalyticsService;
 import com.boonya.lab.io.common.response.Result;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/analytics/energy")
@@ -23,31 +27,31 @@ public class EnergyAnalyticsController {
 
     @GetMapping("/overview")
     @Operation(summary = "获取能碳总览")
-    public Result<Map<String, Object>> getOverview() {
+    public Result<EnergyOverviewDTO> getOverview() {
         return Result.success(energyAnalyticsService.getOverview());
     }
 
     @GetMapping("/trend")
     @Operation(summary = "获取能源趋势")
-    public Result<List<Map<String, Object>>> getTrend(@RequestParam(defaultValue = "day") String period) {
+    public Result<List<EnergyTrendItemDTO>> getTrend(@RequestParam(defaultValue = "day") String period) {
         return Result.success(energyAnalyticsService.getEnergyTrend(period));
     }
 
     @GetMapping("/areas/ranking")
     @Operation(summary = "获取区域能耗排行")
-    public Result<List<Map<String, Object>>> getAreaRanking() {
+    public Result<List<AreaRankingDTO>> getAreaRanking() {
         return Result.success(energyAnalyticsService.getAreaRanking());
     }
 
     @GetMapping("/devices/status")
     @Operation(summary = "获取能源设备状态")
-    public Result<List<Map<String, Object>>> getDeviceStatus() {
+    public Result<List<EnergyDeviceStatusDTO>> getDeviceStatus() {
         return Result.success(energyAnalyticsService.getDeviceStatus());
     }
 
     @GetMapping("/alarms")
     @Operation(summary = "获取能耗告警")
-    public Result<List<Map<String, Object>>> getAlarms() {
+    public Result<List<EnergyAlarmDTO>> getAlarms() {
         return Result.success(energyAnalyticsService.getAlarms());
     }
 }

@@ -3,13 +3,7 @@ package com.boonya.lab.io.iot.config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
-/**
- * @ClassName: MqttBrokerProperties
- * @Description: TODO(mqtt 切换方案属性)
- * @author: pengjunlin
- * @date:  2026年5月20日
- * @since V1.0
- */
+
 @Data
 @Component
 @ConfigurationProperties(prefix = "mqtt.broker")

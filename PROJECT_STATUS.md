@@ -74,10 +74,14 @@ boonya-io/
 ```bash
 cd D:\code\boonya-io
 
-# 代码有变动一定要--build
+# 代码有变动一定要--build（先本地mvn package构建JAR）
+# 第一步：Maven构建
+mvn clean package -DskipTests
+
+# 第二步：Docker镜像+容器（有代码变动/首次执行必须带--build）
 docker-compose up -d --build
 
-# 启动所有服务（基础设施 + 应用）
+# 仅启动（代码/镜像均无变动时使用）
 docker-compose up -d
 
 # 查看运行状态

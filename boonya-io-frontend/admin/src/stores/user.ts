@@ -4,17 +4,14 @@ import { login as loginApi, logout as logoutApi } from '@/api/auth'
 import type { LoginRequest, LoginResponse } from '@/api/auth'
 
 export const useUserStore = defineStore('user', () => {
-  // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:00:00 -- start ----
   const token = ref<string>(localStorage.getItem('token') || '')
   const userInfo = ref<any>(localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')!) : null)
-  // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:00:00 -- end ----
 
   const isLoggedIn = computed(() => !!token.value)
 
   /**
    * 登录
    */
-  // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:00:00 -- start ----
   // 登录时存储 refreshToken，登出时清除
   async function login(loginData: LoginRequest) {
     try {
@@ -37,6 +34,8 @@ export const useUserStore = defineStore('user', () => {
   async function logout() {
     try {
       await logoutApi()
+    } catch {
+      // 后端 logout 失败不影响本地清理
     } finally {
       token.value = ''
       userInfo.value = null
@@ -45,7 +44,6 @@ export const useUserStore = defineStore('user', () => {
       localStorage.removeItem('userInfo')
     }
   }
-  // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:00:00 -- end ----
 
   /**
    * 设置用户信息

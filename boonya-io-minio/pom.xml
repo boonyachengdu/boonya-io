@@ -18,6 +18,13 @@
     </properties>
 
     <dependencies>
+        <!-- 公共模块：统一响应、异常处理 -->
+        <dependency>
+            <groupId>com.boonya.lab.io</groupId>
+            <artifactId>boonya-io-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- minio -->
         <dependency>
             <groupId>io.minio</groupId>
@@ -29,6 +36,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- OpenAPI 文档 -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
 
        <!-- &lt;!&ndash; Nacos 服务发现 + 配置 &ndash;&gt;

@@ -39,7 +39,6 @@ MinIO的物联网策略通常采用"云边协同"的分层架构：
 
 MinIO凭借其轻量、高性能、云原生以及对AI的友好性，已成为物联网尤其是边缘计算场景下不可或缺的存储组件。它不仅能充当数据仓库，更是驱动AI应用持续进化的数据引擎。
 
-
 # 运行minio模块
 
 ## 构建镜像
@@ -65,7 +64,6 @@ minio/minio:RELEASE.2025-04-22T22-12-26Z \
 server /data --console-address ":9001"
 ```
 
-
 windows
 ```bash
 docker run -d --name minio -p 9000:9000 -p 9001:9001 -v D:/minio/data:/data -e "MINIO_ROOT_USER=minioadmin" -e "MINIO_ROOT_PASSWORD=minioadmin" minio/minio server /data --console-address ":9001"
@@ -81,7 +79,6 @@ curl -X POST -F "file=@test.png" http://localhost:8080/api/files/upload
 # 测试结果
 
 <img src="./minio.png" alt="项目架构图" width="600">
-
 
 - 9000 服务器地址
 - 9001 webUI地址

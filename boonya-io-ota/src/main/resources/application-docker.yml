@@ -4,7 +4,12 @@ server:
 spring:
   application:
     name: boonya-io-ota
-  
+  cloud:
+    nacos:
+      discovery:
+        server-addr: nacos:8848
+        namespace: public
+
   datasource:
     url: jdbc:postgresql://postgres:5432/iot_ota
     username: postgres
@@ -36,8 +41,6 @@ springdoc:
 logging:
   level:
     com.boonya.lab.io.ota: DEBUG
-
-# 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ----
 # Seata 分布式事务配置
 seata:
   enabled: true
@@ -48,4 +51,3 @@ seata:
       boonya-io-tx-group: default
     grouplist:
       default: seata:8091
-# 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ----

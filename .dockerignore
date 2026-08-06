@@ -1,0 +1,47 @@
+# VCS
+.git
+.gitignore
+
+# IDE
+.idea
+*.iml
+.vscode
+*.ipr
+*.iws
+
+# Build outputs (explicit per module + wildcard)
+target/
+**/target
+**/target/**
+**/build/
+
+# Frontend (not needed for Java builds)
+boonya-io-frontend/
+
+# Data files
+data/
+**/data/
+*.h2
+*.page
+.moquette_uuid
+
+# Documentation/images (not needed for build)
+*.md
+*.png
+
+# Deploy/infra configs (not needed for build)
+deploy/
+k8s/
+.trae/
+
+# Docker compose files (not needed inside build)
+docker-compose.yml
+**/docker-compose.yml
+
+# OS
+.DS_Store
+
+# Maven wrapper (not needed, using maven image)
+**/.mvn
+**/mvnw
+**/mvnw.cmd

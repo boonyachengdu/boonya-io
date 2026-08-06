@@ -1,4 +1,4 @@
-﻿version: '3.8'
+version: '3.8'
 
 services:
   # ===== 基础设施服务 =====
@@ -64,8 +64,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-
-  # 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
   # Nacos - 注册配置中心
   nacos:
     image: nacos/nacos-server:v2.4.3-slim
@@ -82,7 +80,6 @@ services:
     networks:
       - iot-network
     restart: unless-stopped
-  # 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----
 
   # EMQX - MQTT Broker
   emqx:
@@ -131,8 +128,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-
-  # 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ----
   # Seata - 分布式事务协调器
   seata:
     image: seataio/seata-server:2.0.0
@@ -245,7 +240,6 @@ services:
     networks:
       - iot-network
     restart: unless-stopped
-  # 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ----
 
   # ===== 应用服务 =====
 
@@ -258,10 +252,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      # 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
       nacos:
         condition: service_started
-      # 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----
       auth:
         condition: service_started
       device:
@@ -274,7 +266,7 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_REDIS_HOST: redis
+      SPRING_DATA_REDIS_HOST: redis
       JWT_SECRET: boonya-iot-jwt-secret-key-2026-very-long-secret-for-security
     networks:
       - iot-network
@@ -291,6 +283,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      nacos:
+        condition: service_started
     ports:
       - "8083:8083"
     environment:
@@ -298,7 +292,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/iot_auth
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
-      SPRING_REDIS_HOST: redis
+      SPRING_DATA_REDIS_HOST: redis
       JWT_SECRET: boonya-iot-jwt-secret-key-2026-very-long-secret-for-security
     networks:
       - iot-network
@@ -315,6 +309,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      nacos:
+        condition: service_started
     ports:
       - "8086:8086"
     environment:
@@ -322,7 +318,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/iot_device
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
-      SPRING_REDIS_HOST: redis
+      SPRING_DATA_REDIS_HOST: redis
     networks:
       - iot-network
     restart: on-failure
@@ -340,17 +336,15 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      # 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
       nacos:
         condition: service_started
-      # 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----
     ports:
       - "8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: docker
       MQTT_BROKER_HOST: tcp://emqx:1883
       TDENGINE_URL: jdbc:TAOS-RS://tdengine:6041/iot
-      SPRING_REDIS_HOST: redis
+      SPRING_DATA_REDIS_HOST: redis
     networks:
       - iot-network
     restart: on-failure
@@ -384,6 +378,8 @@ services:
     depends_on:
       tdengine:
         condition: service_healthy
+      nacos:
+        condition: service_started
     ports:
       - "8084:8084"
     environment:
@@ -404,6 +400,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      nacos:
+        condition: service_started
     ports:
       - "8085:8085"
     environment:
@@ -427,13 +425,9 @@ volumes:
   emqx-log:
   emqx-etc:
   minio-data:
-  # 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
   nacos-data:
-  # 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----
-  # 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ----
   es-data:
   grafana-data:
-  # 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ----
 
 networks:
   iot-network:

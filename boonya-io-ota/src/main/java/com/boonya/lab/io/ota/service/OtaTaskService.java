@@ -5,13 +5,21 @@ import com.boonya.lab.io.ota.entity.Firmware;
 import com.boonya.lab.io.ota.entity.OtaTask;
 import com.boonya.lab.io.ota.repository.FirmwareRepository;
 import com.boonya.lab.io.ota.repository.OtaTaskRepository;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -128,5 +136,36 @@ public class OtaTaskService {
      */
     public List<OtaTask> getFirmwareTasks(Long firmwareId) {
         return otaTaskRepository.findByFirmwareId(firmwareId);
+    }
+
+    /**
+     * 全局分页查询OTA任务
+     * @param pageNum 页码（从1开始）
+     * @param pageSize 每页数量
+     * @param deviceId 设备ID（可选筛选）
+     * @param status 任务状态（可选筛选）
+     */
+    public Page<OtaTask> queryTasks(int pageNum, int pageSize, String deviceId, String status) {
+        // 限制每页最大100条，防止一次拉爆
+        if (pageSize > 100) {
+            pageSize = 100;
+        }
+        if (pageNum < 1) {
+            pageNum = 1;
+        }
+        Pageable pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by(Sort.Direction.DESC, "createTime"));
+
+        Specification<OtaTask> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (StringUtils.hasText(deviceId)) {
+                predicates.add(cb.like(root.get("deviceId"), "%" + deviceId + "%"));
+            }
+            if (StringUtils.hasText(status)) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return otaTaskRepository.findAll(spec, pageable);
     }
 }

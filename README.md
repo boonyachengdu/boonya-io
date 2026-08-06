@@ -201,10 +201,16 @@ boonya-io/
 # 1. 克隆项目并进入根目录
 cd boonya-io
 
-# 2. 启动所有服务（基础组件 + 微服务）
+# 2. Maven构建生成JAR（代码有变动必须执行）
+mvn clean package -DskipTests
+
+# 3. 启动所有服务（首次执行/代码有变动必须带--build重新构建镜像）
+docker-compose up -d --build
+
+# 4. 仅重启容器（代码/镜像均无变动时使用，更快）
 docker-compose up -d
 
-# 3. 查看服务状态
+# 5. 查看服务状态
 docker-compose ps
 ```
 

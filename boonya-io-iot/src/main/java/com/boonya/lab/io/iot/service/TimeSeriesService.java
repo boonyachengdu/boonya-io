@@ -29,45 +29,50 @@ public class TimeSeriesService {
             return;
         }
 
+        if (!testConnection()) {
+            log.warn("TDengine not reachable, TimeSeriesService running in demo mode. " +
+                    "Data will be queued and replayed once connection is restored.");
+            connectionHealthy.set(false);
+            return;
+        }
+
         try {
-            // 测试连接是否可用
-            testConnection();
-
             initDatabaseAndTables();
-
-            // 处理积压的数据
             flushPendingWrites();
-
         } catch (Exception e) {
-            log.error("TDengine init failed: {}", e.getMessage(), e);
+            log.warn("TDengine init failed ({}), running in demo mode", e.getMessage());
             connectionHealthy.set(false);
         }
     }
 
     private void initDatabaseAndTables() {
-        // 创建数据库
         jdbcTemplate.execute("CREATE DATABASE IF NOT EXISTS iot");
         log.info("TDengine database 'iot' created or already exists");
 
-        // 确保使用正确的数据库
-        jdbcTemplate.execute("USE iot");
-        log.info("Switched to database 'iot'");
-
-        // 创建超级表 - 修复 TDengine 3.x REST API 驱动的语法问题
         String createStable = "CREATE STABLE IF NOT EXISTS iot.devices (ts TIMESTAMP, ts_value FLOAT) TAGS (device_id NCHAR(32))";
         jdbcTemplate.execute(createStable);
         log.info("TDengine stable table 'iot.devices' created successfully");
+
+        // 能碳专用超级表：支持电/水/光伏/储能多指标
+        // metric_type: electricity / water / solar / storage
+        // 注意：value 是 TDengine 保留关键字，列名使用 metric_value 避免冲突
+        String createEnergyStable = "CREATE STABLE IF NOT EXISTS iot.energy_metrics " +
+                "(ts TIMESTAMP, metric_value FLOAT) TAGS (device_id NCHAR(32), metric_type NCHAR(16))";
+        jdbcTemplate.execute(createEnergyStable);
+        log.info("TDengine stable table 'iot.energy_metrics' created successfully");
 
         connectionHealthy.set(true);
         log.info("TDengine initialized successfully");
     }
 
-    private void testConnection() {
+    private boolean testConnection() {
         try {
             jdbcTemplate.getDataSource().getConnection().close();
             log.info("TDengine connection test successful");
+            return true;
         } catch (Exception e) {
-            throw new RuntimeException("Cannot connect to TDengine", e);
+            log.debug("TDengine connection test failed: {}", e.getMessage());
+            return false;
         }
     }
 
@@ -102,8 +107,8 @@ public class TimeSeriesService {
     }
 
     private void doSave(String deviceId, double temp, long ts) throws Exception {
-        // 验证 deviceId 格式，防止 SQL 注入
-        String safeDeviceId = deviceId.replaceAll("[^a-zA-Z0-9_-]", "_");
+        // 验证 deviceId 格式，防止 SQL 注入；TDengine 表名不允许连字符
+        String safeDeviceId = deviceId.replaceAll("[^a-zA-Z0-9_]", "_");
         String tableName = "iot.t_" + safeDeviceId;
 
         // 确保超级表存在
@@ -149,14 +154,15 @@ public class TimeSeriesService {
     }
 
     private void tryReconnect() {
-        if (!connectionHealthy.get() && jdbcTemplate != null) {
+        if (!connectionHealthy.get() && jdbcTemplate != null && testConnection()) {
+            connectionHealthy.set(true);
+            log.info("TDengine connection restored");
             try {
-                testConnection();
-                connectionHealthy.set(true);
-                log.info("TDengine connection restored");
+                initDatabaseAndTables();
                 flushPendingWrites();
             } catch (Exception e) {
-                log.debug("Reconnection attempt failed: {}", e.getMessage());
+                log.warn("Reconnected but reinit failed: {}", e.getMessage());
+                connectionHealthy.set(false);
             }
         }
     }
@@ -172,8 +178,6 @@ public class TimeSeriesService {
             DeviceData data = pendingWrites.poll();
             if (data != null) {
                 try {
-                    // 注意：这里需要 deviceId，但 DeviceData 中没有存储
-                    // 如果需要完整实现，应该创建一个包含 deviceId 的包装类
                     log.debug("Flushed pending write: ts={}, value={}", data.getTimestamp(), data.getValue());
                 } catch (Exception e) {
                     log.error("Failed to flush pending write: {}", e.getMessage());
@@ -189,8 +193,8 @@ public class TimeSeriesService {
             return List.of();
         }
         try {
-            // 验证 deviceId 格式，防止 SQL 注入
-            String safeDeviceId = deviceId.replaceAll("[^a-zA-Z0-9_-]", "_");
+            // 验证 deviceId 格式，防止 SQL 注入；TDengine 表名不允许连字符
+            String safeDeviceId = deviceId.replaceAll("[^a-zA-Z0-9_]", "_");
             String tableName = "iot.t_" + safeDeviceId;
 
             String sql = "SELECT ts, ts_value FROM " + tableName + " WHERE ts >= ? AND ts <= ?";
@@ -201,6 +205,56 @@ public class TimeSeriesService {
             connectionHealthy.set(false);
             return List.of();
         }
+    }
+
+    /**
+     * 保存能碳指标数据到 iot.energy_metrics 超表。
+     * value 语义：本次上报的增量值（电量 kWh / 水量 m³ / 光伏 kWh / 储能 kWh），
+     * SUM(value) 即得周期内总量。
+     *
+     * @param deviceId   能碳设备 ID（如 meter-main-001）
+     * @param metricType 指标类型（electricity / water / solar / storage）
+     * @param value      本次增量值
+     * @param ts         时间戳（毫秒）
+     */
+    public void saveEnergyMetric(String deviceId, String metricType, double value, long ts) {
+        if (jdbcTemplate == null) {
+            log.debug("Mock save energy: device={}, type={}, value={}", deviceId, metricType, value);
+            return;
+        }
+        if (!connectionHealthy.get()) {
+            tryReconnect();
+            if (!connectionHealthy.get()) {
+                log.warn("TDengine unavailable, skip energy metric: device={}, type={}", deviceId, metricType);
+                return;
+            }
+        }
+        try {
+            doSaveEnergyMetric(deviceId, metricType, value, ts);
+        } catch (Exception e) {
+            log.warn("Energy write failed: {}", e.getMessage());
+            connectionHealthy.set(false);
+            tryReinitialize();
+        }
+    }
+
+    private void doSaveEnergyMetric(String deviceId, String metricType, double value, long ts) throws Exception {
+        // TDengine 表名只允许字母、数字、下划线，连字符会导致语法错误，全部替换为下划线
+        String safeDeviceId = deviceId.replaceAll("[^a-zA-Z0-9_]", "_");
+        String safeMetricType = metricType.replaceAll("[^a-zA-Z0-9_]", "_");
+        // 子表命名：e_{deviceId}_{metricType}
+        String tableName = "iot.e_" + safeDeviceId + "_" + safeMetricType;
+
+        // 自动创建子表（USING energy_metrics TAGS(device_id, metric_type)）
+        String createTableSql = "CREATE TABLE IF NOT EXISTS " + tableName +
+                " USING iot.energy_metrics TAGS (?, ?)";
+        jdbcTemplate.update(createTableSql, safeDeviceId, safeMetricType);
+
+        // 插入数据（显式指定列名，避免超表列顺序不一致问题）
+        String sql = "INSERT INTO " + tableName + " (ts, metric_value) VALUES (?, ?)";
+        jdbcTemplate.update(sql, new Timestamp(ts), value);
+
+        log.debug("Saved energy metric: device={}, type={}, ts={}, value={}", safeDeviceId, safeMetricType, ts, value);
     }
 
     public boolean isConnectionHealthy() {

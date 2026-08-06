@@ -25,10 +25,8 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- start ---- -->
           <!-- P0-6: 查询按钮改为 handleSearch，搜索时重置页码为 1 -->
           <el-button type="primary" @click="handleSearch">查询</el-button>
-          <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- end ---- -->
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
@@ -75,7 +73,6 @@
       />
     </el-card>
 
-    <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- start ---- -->
     <!-- P0-5: 注册表单新增 deviceId（必填）与 location 字段 -->
     <!-- 注册设备对话框 -->
     <el-dialog v-model="dialogVisible" title="注册设备" width="500px">
@@ -113,9 +110,7 @@
         <el-button type="primary" @click="submitRegister">确定</el-button>
       </template>
     </el-dialog>
-    <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- end ---- -->
 
-    <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- start ---- -->
     <!-- P0-5: 设备详情对话框，调用 getDeviceById 展示完整信息 -->
     <el-dialog v-model="detailDialogVisible" title="设备详情" width="640px">
       <el-descriptions :column="2" border>
@@ -138,9 +133,7 @@
         <el-button @click="detailDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
-    <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- end ---- -->
 
-    <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- start ---- -->
     <!-- P0-5: 编辑设备状态对话框，调用 updateDeviceStatus -->
     <el-dialog v-model="editDialogVisible" title="编辑设备状态" width="500px">
       <el-form :model="editForm" label-width="100px">
@@ -161,12 +154,10 @@
         <el-button type="primary" @click="submitEdit">保存</el-button>
       </template>
     </el-dialog>
-    <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- end ---- -->
   </div>
 </template>
 
 <script setup lang="ts">
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- start ----
 // P0-6: loadDevices 传入搜索参数并改用 pageNum/pageSize
 // P0-5: handleView/handleEdit 改为打开详情/编辑对话框
 // 注册表单补充 deviceId、location 字段
@@ -342,7 +333,6 @@ const getStatusText = (status: string) => {
   }
   return texts[status] || status
 }
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- end ----
 </script>
 
 <style scoped>

@@ -16,4 +16,13 @@ public class JsonUtils {
             return mapper.createObjectNode();
         }
     }
+
+    public static String toJson(Object obj) {
+        try {
+            return mapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            log.error("JSON serialize error: {}", e.getMessage());
+            return "{}";
+        }
+    }
 }

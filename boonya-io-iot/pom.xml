@@ -23,8 +23,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-
-        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ---- -->
         <!-- Nacos 服务发现 + 配置 -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
@@ -46,8 +44,6 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
-        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ---- -->
-
         <!-- lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -61,7 +57,6 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-
 
         <dependency>
             <groupId>com.boonya.lab.io</groupId>
@@ -133,16 +128,11 @@
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
-
-        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ---- -->
         <!-- Kafka 消息队列 -->
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
         </dependency>
-        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ---- -->
-
-        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ---- -->
         <!-- Actuator + Prometheus 指标监控 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -152,8 +142,6 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
-        <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ---- -->
-
     </dependencies>
 
     <build>

@@ -19,8 +19,6 @@ public class Rule {
     private String metric;     // 例如: "temp"
     private String operator;   // 例如: ">", "<", "==", ">="
     private Double threshold;  // 例如: 30.0
-
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
     // 多指标支持
     private List<String> metrics;          // 多指标列表，例如: ["temp", "humidity"]
     private String logicOperator;          // 多条件逻辑运算符: "AND" / "OR"
@@ -32,7 +30,6 @@ public class Rule {
 
     // 上次触发时间（毫秒时间戳）：用于冷却判断
     private long lastTriggerTime;
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----
 
     // 执行动作
     private String actionType; // 例如: "ALERT", "FORWARD", "STORE"

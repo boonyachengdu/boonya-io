@@ -19,6 +19,22 @@ spring:
             - Path=/api/auth/**
           filters:
             - StripPrefix=0
+
+        # 用户管理服务
+        - id: user-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - StripPrefix=0
+
+        # 角色管理服务
+        - id: role-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/roles/**
+          filters:
+            - StripPrefix=0
         
         # 设备管理服务
         - id: device-service
@@ -33,6 +49,14 @@ spring:
           uri: http://localhost:8081
           predicates:
             - Path=/api/iot/**
+          filters:
+            - StripPrefix=0
+
+        # IoT WebSocket 实时推送（SockJS/STOMP 端点）
+        - id: iot-websocket
+          uri: ws://localhost:8081
+          predicates:
+            - Path=/ws/**
           filters:
             - StripPrefix=0
         
@@ -65,11 +89,12 @@ spring:
             allowedHeaders: "*"
             allowCredentials: true
             maxAge: 3600
-
-  redis:
-    host: localhost
-    port: 6379
-    database: 3
+  # Spring Boot 3.x Redis 属性前缀从 spring.redis 迁移到 spring.data.redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 3
 
 # JWT 配置（用于验证 Token）
 jwt:

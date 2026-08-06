@@ -11,23 +11,34 @@
         </div>
       </template>
 
-      <!-- 搜索栏 -->
+      <!-- 搜索栏：deviceId 可选筛选 + status 下拉筛选 -->
       <el-form :inline="true" :model="searchForm">
         <el-form-item label="设备ID">
           <el-input
             v-model="searchForm.deviceId"
-            placeholder="请输入设备ID"
+            placeholder="请输入设备ID（可选）"
             clearable
             @keyup.enter="handleSearch"
           />
         </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 160px">
+            <el-option label="待执行" value="pending" />
+            <el-option label="下载中" value="downloading" />
+            <el-option label="安装中" value="installing" />
+            <el-option label="成功" value="success" />
+            <el-option label="失败" value="failed" />
+            <el-option label="已取消" value="cancelled" />
+          </el-select>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
 
-      <!-- 任务列表 -->
-      <el-table v-if="searchedDeviceId" :data="tasks" border stripe v-loading="loading">
+      <!-- 全局任务列表 + 分页 -->
+      <el-table :data="tasks" border stripe v-loading="loading">
         <el-table-column prop="id" label="任务ID" width="80" />
         <el-table-column prop="deviceId" label="设备ID" width="180" />
         <el-table-column prop="firmwareId" label="固件ID" width="100" />
@@ -62,8 +73,17 @@
         </el-table-column>
       </el-table>
 
-      <!-- 初始空状态提示 -->
-      <el-empty v-else description="请输入设备ID查询任务" />
+      <!-- 分页组件 -->
+      <el-pagination
+        v-model:current-page="pagination.page"
+        v-model:page-size="pagination.size"
+        :total="pagination.total"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        style="margin-top: 20px; justify-content: flex-end"
+        @size-change="loadTasks"
+        @current-change="loadTasks"
+      />
     </el-card>
 
     <!-- 创建任务对话框 -->
@@ -99,22 +119,27 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { createOtaTask, getDeviceOtaTasks, cancelOtaTask } from '@/api/ota'
+import { createOtaTask, queryOtaTasks, cancelOtaTask } from '@/api/ota'
 import type { OtaTask } from '@/api/ota'
 import { getFirmwareList } from '@/api/firmware'
 import type { Firmware } from '@/api/firmware'
 
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:40:00 -- start ----
-// 重写 OTA 任务管理页面，对接后端 OTA 任务 API：按设备查询任务、创建任务、取消任务
+// OTA 任务管理页面：全局分页列表 + 可选筛选 + 创建/取消任务
 const tasks = ref<OtaTask[]>([])
 const firmwareOptions = ref<Firmware[]>([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const creating = ref(false)
-const searchedDeviceId = ref('')
 
 const searchForm = reactive({
   deviceId: '',
+  status: '',
+})
+
+const pagination = reactive({
+  page: 1,
+  size: 20,
+  total: 0,
 })
 
 const createForm = reactive({
@@ -124,34 +149,46 @@ const createForm = reactive({
 
 onMounted(() => {
   loadFirmwareOptions()
+  loadTasks() // 进入页面默认加载全部任务分页列表
 })
 
 const loadFirmwareOptions = async () => {
   try {
-    const data = await getFirmwareList({ status: 'published' })
-    firmwareOptions.value = data || []
+    // 已发布固件作为下拉选项，不分页（数据量不会太大）
+    const page = await getFirmwareList({ pageNum: 1, pageSize: 200, status: 'published' })
+    firmwareOptions.value = page?.records || []
   } catch (error) {
     console.error('Load firmware options error:', error)
   }
 }
 
-const handleSearch = async () => {
-  if (!searchForm.deviceId) {
-    ElMessage.warning('请输入设备ID')
-    return
-  }
-  searchedDeviceId.value = searchForm.deviceId
-  await loadTasks()
+const handleSearch = () => {
+  pagination.page = 1
+  loadTasks()
+}
+
+const handleReset = () => {
+  searchForm.deviceId = ''
+  searchForm.status = ''
+  pagination.page = 1
+  loadTasks()
 }
 
 const loadTasks = async () => {
-  if (!searchedDeviceId.value) return
   loading.value = true
   try {
-    const data = await getDeviceOtaTasks(searchedDeviceId.value)
-    tasks.value = data || []
+    const page = await queryOtaTasks({
+      pageNum: pagination.page,
+      pageSize: pagination.size,
+      deviceId: searchForm.deviceId || undefined,
+      status: searchForm.status || undefined,
+    })
+    tasks.value = page?.records || []
+    pagination.total = Number(page?.total ?? 0)
   } catch (error) {
     console.error('Load ota tasks error:', error)
+    tasks.value = []
+    pagination.total = 0
   } finally {
     loading.value = false
   }
@@ -178,10 +215,8 @@ const submitCreate = async () => {
     await createOtaTask(createForm.deviceId, createForm.firmwareId)
     ElMessage.success('创建成功')
     dialogVisible.value = false
-    // 如果当前查询的设备就是新创建任务的设备，刷新列表
-    if (searchedDeviceId.value === createForm.deviceId) {
-      loadTasks()
-    }
+    // 新创建任务后刷新当前列表即可看到
+    loadTasks()
   } catch (error) {
     console.error('Create ota task error:', error)
   } finally {
@@ -231,7 +266,6 @@ const getStatusText = (status: string) => {
   }
   return texts[status] || status
 }
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:40:00 -- end ----
 </script>
 
 <style scoped>

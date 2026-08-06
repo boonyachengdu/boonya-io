@@ -22,8 +22,6 @@ public class RuleEngine {
 
     private final ApplicationEventPublisher eventPublisher;
     private final Map<String, Rule> rules = new ConcurrentHashMap<>();
-
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:10:00 -- start ----
     // 注入 WebSocket 用于 FORWARD 动作转发
     private final SimpMessagingTemplate websocket;
 
@@ -79,7 +77,6 @@ public class RuleEngine {
         }
         return false;
     }
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:10:00 -- end ----
 
     /**
      * 评估设备数据
@@ -91,7 +88,6 @@ public class RuleEngine {
                 .forEach(rule -> {
                     try {
                         if (matchesCondition(rule, data)) {
-                            // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
                             // 冷却时间检查：若在冷却期内则跳过本次触发
                             if (isInCooldown(rule)) {
                                 log.debug("Rule {} skipped due to cooldown (lastTriggerTime={}, cooldownSeconds={})",
@@ -100,7 +96,6 @@ public class RuleEngine {
                             }
                             // 触发动作前更新上次触发时间
                             rule.setLastTriggerTime(System.currentTimeMillis());
-                            // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----
                             executeAction(rule, deviceId, data);
                         }
                     } catch (Exception e) {
@@ -108,8 +103,6 @@ public class RuleEngine {
                     }
                 });
     }
-
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
     /**
      * 判断规则是否处于冷却期内
      */
@@ -120,18 +113,15 @@ public class RuleEngine {
         long elapsedMillis = System.currentTimeMillis() - rule.getLastTriggerTime();
         return elapsedMillis < rule.getCooldownSeconds() * 1000L;
     }
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----
 
     /**
      * 检查是否满足条件
      */
     private boolean matchesCondition(Rule rule, Map<String, Object> data) {
-        // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
         // 多条件模式：当 metrics 不为空时使用多指标逻辑
         if (rule.getMetrics() != null && !rule.getMetrics().isEmpty()) {
             return matchesMultiCondition(rule, data);
         }
-        // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----
 
         Object value = data.get(rule.getMetric());
         if (value == null) {
@@ -151,8 +141,6 @@ public class RuleEngine {
             default -> false;
         };
     }
-
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
     /**
      * 多条件匹配：根据 logicOperator (AND/OR) 组合多指标判断
      * - 默认逻辑运算符为 AND
@@ -205,7 +193,6 @@ public class RuleEngine {
             default -> false;
         };
     }
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----
 
     /**
      * 执行动作
@@ -235,8 +222,6 @@ public class RuleEngine {
         log.warn("Alert triggered: Device {} temperature {:.2f}°C exceeds threshold {:.2f}°C",
                 deviceId, temp, rule.getThreshold());
     }
-
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:10:00 -- start ----
     /**
      * 处理转发动作 - 通过 WebSocket 推送到指定 topic
      */
@@ -272,7 +257,6 @@ public class RuleEngine {
                 "timestamp", System.currentTimeMillis()
         ));
     }
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:10:00 -- end ----
 
     /**
      * 初始化默认规则

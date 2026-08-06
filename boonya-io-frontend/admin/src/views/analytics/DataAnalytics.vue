@@ -42,12 +42,13 @@
 </template>
 
 <script setup lang="ts">
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:50:00 -- start ----
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import type { ECharts } from 'echarts'
 import { getDeviceRealtime, getDeviceTrend } from '@/api/analytics'
 import type { DeviceRealtimeData, TrendPoint } from '@/api/analytics'
+import { subscribe } from '@/composables/useMqtt'
+import { topicDeviceTelemetry, type RealtimeTelemetry } from '@/api/realtime'
 
 const deviceId = ref('sensor_1')
 const period = ref('24h')
@@ -119,9 +120,37 @@ const handleQuery = async () => {
     await Promise.all([loadRealtime(), loadTrend()])
     await nextTick()
     renderChart()
+    subscribeTelemetry()
   } finally {
     loading.value = false
   }
+}
+
+// MQTT 实时遥测：订阅 device/{id}/telemetry，刷新最新温度卡片 + 追加趋势图
+let unsubscribeTelemetry: (() => void) | null = null
+
+const subscribeTelemetry = () => {
+  unsubscribeTelemetry?.()
+  unsubscribeTelemetry = null
+  if (!deviceId.value) return
+
+  unsubscribeTelemetry = subscribe(
+    topicDeviceTelemetry(deviceId.value),
+    (_topic, payload: RealtimeTelemetry) => {
+      const temp = Number(payload?.temp ?? payload?.value ?? 0)
+      const ts = Number(payload?.ts ?? payload?.timestamp ?? Date.now())
+      // 刷新最新温度卡片
+      realtime.value = { ...realtime.value, latestTemp: temp }
+      // 追加趋势点并重绘
+      trendData.value.push({ timestamp: ts, value: temp })
+      if (trendData.value.length > 300) trendData.value.shift()
+      if (chart) {
+        chart.setOption({
+          series: [{ data: trendData.value.map((p) => [p.timestamp, p.value]) }],
+        })
+      }
+    },
+  )
 }
 
 const handleResize = () => {
@@ -134,11 +163,12 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  unsubscribeTelemetry?.()
+  unsubscribeTelemetry = null
   window.removeEventListener('resize', handleResize)
   chart?.dispose()
   chart = null
 })
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:50:00 -- end ----
 </script>
 
 <style scoped>

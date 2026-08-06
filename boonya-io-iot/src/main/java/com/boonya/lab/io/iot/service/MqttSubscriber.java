@@ -25,16 +25,24 @@ public class MqttSubscriber {
     @EventListener(ApplicationReadyEvent.class)
     public void subscribe() {
         try {
-            // 初始化默认规则
             ruleEngine.initDefaultRules();
 
+            // 通用设备遥测（温度传感器）
             mqttClient.subscribe("device/+/telemetry", (topic, payload) -> {
                 log.info("Received message - Topic: {}, Payload: {}", topic, new String(payload));
                 String deviceId = topic.split("/")[1];
                 String message = new String(payload);
                 handleDeviceData(deviceId, message);
             });
-            log.info("MQTT subscriber started");
+
+            // 能碳设备指标（电表/水表/光伏/储能）
+            // 主题：device/{deviceId}/energy，payload: {"metricType":"electricity","value":123.45,"ts":...}
+            mqttClient.subscribe("device/+/energy", (topic, payload) -> {
+                String deviceId = topic.split("/")[1];
+                handleEnergyData(deviceId, new String(payload));
+            });
+
+            log.info("MQTT subscriber started (telemetry + energy)");
         } catch (Exception e) {
             log.error("Failed to subscribe: {}", e.getMessage());
         }
@@ -57,6 +65,22 @@ public class MqttSubscriber {
 
         } catch (Exception e) {
             log.error("Error processing device data", e);
+        }
+    }
+
+    private void handleEnergyData(String deviceId, String payload) {
+        try {
+            JsonNode json = JsonUtils.parse(payload);
+            String metricType = json.has("metricType") ? json.get("metricType").asText() : "electricity";
+            double value = json.get("value").asDouble();
+            long ts = json.has("ts") ? json.get("ts").asLong() : System.currentTimeMillis();
+
+            // 存储到能碳超表
+            timeSeriesService.saveEnergyMetric(deviceId, metricType, value, ts);
+
+            log.debug("Energy metric saved: device={}, type={}, value={}", deviceId, metricType, value);
+        } catch (Exception e) {
+            log.error("Error processing energy data", e);
         }
     }
 }

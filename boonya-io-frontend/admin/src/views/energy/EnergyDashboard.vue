@@ -91,6 +91,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import * as echarts from 'echarts'
 import type { ECharts } from 'echarts'
+import { ElMessage } from 'element-plus'
 import {
   getAreaRanking,
   getEnergyAlarms,
@@ -161,27 +162,37 @@ onMounted(async () => {
 })
 
 async function loadData() {
-  const [overviewData, trendData, areas, deviceRows, alarmRows] = await Promise.all([
-    getEnergyOverview(),
-    getEnergyTrend(period.value),
-    getAreaRanking(),
-    getEnergyDeviceStatus(),
-    getEnergyAlarms(),
-  ])
+  try {
+    const [overviewData, trendData, areas, deviceRows, alarmRows] = await Promise.all([
+      getEnergyOverview(),
+      getEnergyTrend(period.value),
+      getAreaRanking(),
+      getEnergyDeviceStatus(),
+      getEnergyAlarms(),
+    ])
 
-  overview.value = overviewData
-  trend.value = trendData
-  areaRanking.value = areas
-  devices.value = deviceRows
-  alarms.value = alarmRows
+    overview.value = overviewData ?? overview.value
+    trend.value = Array.isArray(trendData) ? trendData : []
+    areaRanking.value = Array.isArray(areas) ? areas : []
+    devices.value = Array.isArray(deviceRows) ? deviceRows : []
+    alarms.value = Array.isArray(alarmRows) ? alarmRows : []
 
-  await nextTick()
-  renderTrendChart()
+    await nextTick()
+    renderTrendChart()
+  } catch (error) {
+    console.error('Energy loadData error:', error)
+    ElMessage.error('能碳数据加载失败，请检查后端服务')
+  }
 }
 
 async function loadTrend() {
-  trend.value = await getEnergyTrend(period.value)
-  renderTrendChart()
+  try {
+    trend.value = await getEnergyTrend(period.value) ?? []
+    renderTrendChart()
+  } catch (error) {
+    console.error('Energy loadTrend error:', error)
+    ElMessage.error('能源趋势加载失败')
+  }
 }
 
 function renderTrendChart() {
@@ -237,19 +248,19 @@ function formatNumber(value: number) {
 }
 
 function statusText(status: EnergyDeviceStatus['status']) {
-  return { online: '在线', offline: '离线', warning: '告警' }[status]
+  return ({ online: '在线', offline: '离线', warning: '告警' } as Record<string, string>)[status] ?? status
 }
 
 function statusTag(status: EnergyDeviceStatus['status']) {
-  return { online: 'success', offline: 'info', warning: 'warning' }[status]
+  return ({ online: 'success', offline: 'info', warning: 'warning' } as Record<string, string>)[status] ?? 'info'
 }
 
 function alarmLevelText(level: EnergyAlarm['level']) {
-  return { high: '高', medium: '中', low: '低' }[level]
+  return ({ high: '高', medium: '中', low: '低' } as Record<string, string>)[level] ?? level
 }
 
 function alarmTag(level: EnergyAlarm['level']) {
-  return { high: 'danger', medium: 'warning', low: 'info' }[level]
+  return ({ high: 'danger', medium: 'warning', low: 'info' } as Record<string, string>)[level] ?? 'info'
 }
 </script>
 

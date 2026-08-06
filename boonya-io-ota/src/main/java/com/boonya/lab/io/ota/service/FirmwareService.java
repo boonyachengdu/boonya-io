@@ -9,16 +9,24 @@ import com.boonya.lab.io.ota.repository.FirmwareRepository;
 import com.boonya.lab.io.ota.repository.OtaTaskRepository;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -131,7 +139,33 @@ public class FirmwareService {
     }
 
     /**
-     * 获取固件列表
+     * 获取固件列表（分页）
+     */
+    public Page<Firmware> listFirmwares(int pageNum, int pageSize, String deviceModel, String status) {
+        if (pageSize > 100) {
+            pageSize = 100;
+        }
+        if (pageNum < 1) {
+            pageNum = 1;
+        }
+        Pageable pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by(Sort.Direction.DESC, "createTime"));
+
+        Specification<Firmware> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (StringUtils.hasText(deviceModel)) {
+                predicates.add(cb.like(root.get("deviceModel"), "%" + deviceModel + "%"));
+            }
+            if (StringUtils.hasText(status)) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return firmwareRepository.findAll(spec, pageable);
+    }
+
+    /**
+     * 获取固件列表（不分页，保留兼容）
      */
     public List<Firmware> listFirmwares(String deviceModel, String status) {
         if (deviceModel != null && status != null) {

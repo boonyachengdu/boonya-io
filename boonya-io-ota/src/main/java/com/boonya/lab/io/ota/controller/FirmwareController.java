@@ -1,5 +1,6 @@
 package com.boonya.lab.io.ota.controller;
 
+import com.boonya.lab.io.common.response.PageResult;
 import com.boonya.lab.io.common.response.Result;
 import com.boonya.lab.io.ota.dto.FirmwareUploadRequest;
 import com.boonya.lab.io.ota.entity.Firmware;
@@ -8,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,12 +30,20 @@ public class FirmwareController {
     }
 
     @GetMapping
-    @Operation(summary = "获取固件列表", description = "查询固件列表，可按设备型号和状态筛选")
-    public Result<List<Firmware>> listFirmwares(
+    @Operation(summary = "获取固件列表（分页）", description = "分页查询固件列表，可按设备型号和状态筛选")
+    public Result<PageResult<Firmware>> listFirmwares(
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "20") int pageSize,
             @RequestParam(required = false) String deviceModel,
             @RequestParam(required = false) String status) {
-        List<Firmware> firmwares = firmwareService.listFirmwares(deviceModel, status);
-        return Result.success(firmwares);
+        Page<Firmware> page = firmwareService.listFirmwares(pageNum, pageSize, deviceModel, status);
+        PageResult<Firmware> pageResult = PageResult.of(
+                page.getNumber() + 1L,
+                page.getSize(),
+                page.getTotalElements(),
+                page.getContent()
+        );
+        return Result.success(pageResult);
     }
 
     @GetMapping("/{id}")

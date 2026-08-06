@@ -38,11 +38,8 @@ public class Device {
 
     @Schema(description = "所属分组ID")
     private Long groupId;
-
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ----
     @Schema(description = "租户ID")
     private Long tenantId;
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ----
 
     @Schema(description = "位置信息")
     private String location;

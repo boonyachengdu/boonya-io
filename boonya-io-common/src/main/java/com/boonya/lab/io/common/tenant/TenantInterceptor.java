@@ -3,8 +3,6 @@ package com.boonya.lab.io.common.tenant;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.HandlerInterceptor;
-
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ----
 /**
  * 多租户拦截器，从请求头 X-Tenant-Id 解析租户ID并写入上下文
  */
@@ -26,4 +24,3 @@ public class TenantInterceptor implements HandlerInterceptor {
         TenantContext.clear();
     }
 }
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ----

@@ -1,42 +1,49 @@
 package com.boonya.lab.io.minio.controller;
 
+import com.boonya.lab.io.common.response.Result;
 import com.boonya.lab.io.minio.service.MinioService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/files")
 @RequiredArgsConstructor
+@Tag(name = "文件管理", description = "文件上传、删除、访问等接口")
 public class FileController {
 
     private final MinioService minioService;
 
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
+    @Operation(summary = "上传文件", description = "上传文件到MinIO，返回预签名访问URL（7天有效期）")
+    public Result<String> uploadFile(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body("请选择要上传的文件");
+            return Result.error("请选择要上传的文件");
         }
         String fileUrl = minioService.uploadFile(file);
-        return ResponseEntity.ok(fileUrl);
+        return Result.success(fileUrl);
     }
 
     @DeleteMapping("/{objectName}")
-    public ResponseEntity<String> deleteFile(@PathVariable String objectName) {
+    @Operation(summary = "删除文件", description = "根据对象名删除MinIO中的文件")
+    public Result<Void> deleteFile(@PathVariable String objectName) {
         minioService.deleteFile(objectName);
-        return ResponseEntity.ok("文件删除成功");
+        return Result.success();
     }
 
     @GetMapping("/check/{objectName}")
-    public ResponseEntity<Boolean> checkFileExists(@PathVariable String objectName) {
-        return ResponseEntity.ok(minioService.fileExists(objectName));
+    @Operation(summary = "检查文件是否存在", description = "检查指定对象名的文件是否存在于MinIO中")
+    public Result<Boolean> checkFileExists(@PathVariable String objectName) {
+        return Result.success(minioService.fileExists(objectName));
     }
 
     @GetMapping("/{objectName}")
-    public ResponseEntity<String> getTemporaryAccessUrl(@PathVariable String objectName) {
+    @Operation(summary = "获取临时访问URL", description = "生成文件的临时预签名访问URL（默认1小时有效期）")
+    public Result<String> getTemporaryAccessUrl(@PathVariable String objectName) {
         int expirySeconds = 3600; // 1小时有效期
         String url = minioService.getTemporaryAccessUrl(objectName, expirySeconds);
-        return ResponseEntity.ok(url);
+        return Result.success(url);
     }
 }

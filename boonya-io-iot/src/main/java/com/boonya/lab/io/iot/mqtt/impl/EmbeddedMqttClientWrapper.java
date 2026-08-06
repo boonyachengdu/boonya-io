@@ -1,6 +1,5 @@
 package com.boonya.lab.io.iot.mqtt.impl;
 
-
 import com.boonya.lab.io.iot.config.EmbeddedMqttBroker;
 import com.boonya.lab.io.iot.config.MqttBrokerProperties;
 import com.boonya.lab.io.iot.mqtt.MqttClientWrapper;

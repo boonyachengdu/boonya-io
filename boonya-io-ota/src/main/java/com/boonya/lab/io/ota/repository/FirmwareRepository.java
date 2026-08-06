@@ -2,13 +2,14 @@ package com.boonya.lab.io.ota.repository;
 
 import com.boonya.lab.io.ota.entity.Firmware;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface FirmwareRepository extends JpaRepository<Firmware, Long> {
+public interface FirmwareRepository extends JpaRepository<Firmware, Long>, JpaSpecificationExecutor<Firmware> {
 
     List<Firmware> findByDeviceModelAndStatusOrderByCreateTimeDesc(String deviceModel, String status);
 

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -25,19 +26,25 @@ import java.util.List;
 public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     private final SecretKey secretKey;
+    private final ReactiveRedisTemplate<String, String> redisTemplate;
+
+    private static final String TOKEN_BLACKLIST_KEY = "auth:token:blacklist:";
 
     // 不需要认证的路径
     private static final List<String> EXCLUDE_PATHS = List.of(
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/refresh",
+            "/api/auth/logout",
             "/actuator/health",
             "/swagger-ui.html",
             "/v3/api-docs"
     );
 
-    public AuthenticationFilter(@Value("${jwt.secret}") String secret) {
+    public AuthenticationFilter(@Value("${jwt.secret}") String secret,
+                                ReactiveRedisTemplate<String, String> redisTemplate) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
@@ -45,12 +52,10 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
-        // 检查是否需要认证
         if (isExcluded(path)) {
             return chain.filter(exchange);
         }
 
-        // 获取 Token
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return onError(exchange, "Missing or invalid Authorization header", HttpStatus.UNAUTHORIZED);
@@ -58,7 +63,6 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
         String token = authHeader.substring(7);
 
-        // 验证 Token
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(secretKey)
@@ -66,16 +70,25 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                     .parseSignedClaims(token)
                     .getPayload();
 
-            // Token 有效，将用户信息传递给下游服务
             String userId = claims.get("userId", String.class);
             String username = claims.getSubject();
 
-            ServerHttpRequest modifiedRequest = request.mutate()
-                    .header("X-User-Id", userId)
-                    .header("X-Username", username)
-                    .build();
-
-            return chain.filter(exchange.mutate().request(modifiedRequest).build());
+            String blacklistKey = TOKEN_BLACKLIST_KEY + token;
+            return redisTemplate.hasKey(blacklistKey)
+                    .onErrorResume(e -> {
+                        log.warn("Redis blacklist check failed, allowing request: {}", e.getMessage());
+                        return Mono.just(false);
+                    })
+                    .flatMap(blacklisted -> {
+                        if (Boolean.TRUE.equals(blacklisted)) {
+                            return onError(exchange, "Token has been revoked", HttpStatus.UNAUTHORIZED);
+                        }
+                        ServerHttpRequest modifiedRequest = request.mutate()
+                                .header("X-User-Id", userId)
+                                .header("X-Username", username)
+                                .build();
+                        return chain.filter(exchange.mutate().request(modifiedRequest).build());
+                    });
 
         } catch (Exception e) {
             log.error("JWT validation failed: {}", e.getMessage());
@@ -100,6 +113,6 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
-        return -1; // 最高优先级
+        return -1;
     }
 }

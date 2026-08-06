@@ -1,6 +1,5 @@
 package com.boonya.lab.io.iot.mqtt;
 
-
 /**
  * MQTT客户端统一接口
  */

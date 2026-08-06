@@ -100,8 +100,8 @@ public class DashboardService {
         Map<String, Object> overview = new HashMap<>();
 
         try {
-            // 查询设备总数
-            String deviceCountSql = "SELECT COUNT(DISTINCT TBNAME) FROM iot.devices";
+            // TDengine 3.x REST 驱动不支持 COUNT(DISTINCT TBNAME)，改用子查询
+            String deviceCountSql = "SELECT COUNT(*) FROM (SELECT DISTINCT TBNAME FROM iot.devices)";
             Integer deviceCount = jdbcTemplate.queryForObject(deviceCountSql, Integer.class);
             overview.put("totalDevices", deviceCount != null ? deviceCount : 0);
 

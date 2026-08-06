@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -34,7 +36,7 @@ public class LoginResponse {
     @AllArgsConstructor
     public static class UserInfo {
         @Schema(description = "用户ID")
-        private Long userId;
+        private Long id;
 
         @Schema(description = "用户名")
         private String username;
@@ -44,5 +46,8 @@ public class LoginResponse {
 
         @Schema(description = "邮箱")
         private String email;
+
+        @Schema(description = "角色列表")
+        private List<String> roles;
     }
 }

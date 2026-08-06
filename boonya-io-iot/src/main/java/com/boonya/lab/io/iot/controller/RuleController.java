@@ -24,8 +24,6 @@ public class RuleController {
         ruleEngine.registerRule(rule);
         return Result.success("规则创建成功", null);
     }
-
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:10:00 -- start ----
     @GetMapping
     @Operation(summary = "获取所有规则", description = "获取所有已注册的规则")
     public Result<List<Rule>> getAllRules() {
@@ -61,5 +59,4 @@ public class RuleController {
         }
         return Result.error(404, "规则不存在: " + ruleId);
     }
-    // 修改内容：修改人：pengjunlin 时间：2026-08-04 18:10:00 -- end ----
 }

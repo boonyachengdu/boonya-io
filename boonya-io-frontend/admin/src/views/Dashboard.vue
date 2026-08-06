@@ -1,6 +1,5 @@
 <template>
   <div class="dashboard" v-loading="loading">
-    <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- start ---- -->
     <!-- 统计卡片对接 getOverview API，离线设备由 totalDevices-onlineDevices 计算 -->
     <el-row :gutter="20">
       <!-- 统计卡片 -->
@@ -52,14 +51,12 @@
         </el-card>
       </el-col>
     </el-row>
-    <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- end ---- -->
 
     <!-- 图表区域 -->
     <el-row :gutter="20" style="margin-top: 20px">
       <el-col :span="16">
         <el-card>
           <template #header>
-            <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- start ---- -->
             <!-- 趋势图卡片头新增设备ID选择下拉框 -->
             <div class="card-header">
               <span>设备温度趋势</span>
@@ -77,7 +74,6 @@
                 />
               </el-select>
             </div>
-            <!-- 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- end ---- -->
           </template>
           <div ref="chartRef" style="height: 400px" v-loading="trendLoading"></div>
         </el-card>
@@ -98,13 +94,15 @@
 </template>
 
 <script setup lang="ts">
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- start ----
-// 重写 Dashboard：移除 mock 数据，对接 getOverview / getDeviceTrend API
-import { ref, computed, onMounted } from 'vue'
+// 重写 Dashboard：移除 mock 数据，对接 getOverview / getDeviceTrend API + MQTT 实时遥测追加
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
 import type { ECharts } from 'echarts'
 import { getOverview, getDeviceTrend } from '@/api/analytics'
 import type { OverviewData, TrendPoint } from '@/api/analytics'
+import { getOnlineDevices } from '@/api/device'
+import { subscribe } from '@/composables/useMqtt'
+import { topicDeviceTelemetry, type RealtimeTelemetry } from '@/api/realtime'
 
 const loading = ref(false)
 const trendLoading = ref(false)
@@ -120,13 +118,27 @@ const offlineDevices = computed(() =>
   Math.max(0, stats.value.totalDevices - stats.value.onlineDevices),
 )
 
-// 设备ID选择下拉框，默认 sensor_1
-const selectedDeviceId = ref('sensor_1')
-const deviceOptions = ref([
-  { label: 'sensor_1', value: 'sensor_1' },
-  { label: 'sensor_2', value: 'sensor_2' },
-  { label: 'sensor_3', value: 'sensor_3' },
-])
+// 设备ID选择下拉框：动态加载在线设备，默认选中第一个
+const selectedDeviceId = ref('')
+const deviceOptions = ref<{ label: string; value: string }[]>([])
+
+// 加载在线设备列表填充下拉
+const loadDeviceOptions = async () => {
+  try {
+    const devices = await getOnlineDevices()
+    const list = devices || []
+    deviceOptions.value = list.map((d) => ({
+      label: d.deviceName || d.deviceId,
+      value: d.deviceId,
+    }))
+    if (deviceOptions.value.length > 0) {
+      selectedDeviceId.value = deviceOptions.value[0].value
+    }
+  } catch (error) {
+    console.error('Load online devices error:', error)
+    deviceOptions.value = []
+  }
+}
 
 const chartRef = ref<HTMLElement>()
 const pieChartRef = ref<HTMLElement>()
@@ -160,12 +172,16 @@ const loadOverview = async () => {
 }
 
 // 获取设备温度趋势，失败时清空图表
+// 同时缓存当前趋势数据，用于 MQTT 实时点追加
+const trendPoints = ref<TrendPoint[]>([])
+
 const loadTrend = async () => {
   if (!chart) return
   trendLoading.value = true
   try {
     const data = await getDeviceTrend(selectedDeviceId.value, '24h')
     const points: TrendPoint[] = Array.isArray(data) ? data : []
+    trendPoints.value = points
     const xData = points.map((p) => formatTime(p.timestamp))
     const yData = points.map((p) => p.value)
     chart.setOption({
@@ -174,6 +190,7 @@ const loadTrend = async () => {
     })
   } catch (error) {
     console.error('Load trend error:', error)
+    trendPoints.value = []
     chart.setOption({
       xAxis: { data: [] },
       series: [{ name: '温度', data: [] }],
@@ -182,6 +199,36 @@ const loadTrend = async () => {
     trendLoading.value = false
   }
 }
+
+// MQTT 实时遥测：选定设备后订阅 device/{id}/telemetry，追加最新点到趋势图
+let unsubscribeTelemetry: (() => void) | null = null
+
+const subscribeTelemetry = () => {
+  unsubscribeTelemetry?.()
+  unsubscribeTelemetry = null
+  if (!selectedDeviceId.value) return
+
+  unsubscribeTelemetry = subscribe(
+    topicDeviceTelemetry(selectedDeviceId.value),
+    (_topic, payload: RealtimeTelemetry) => {
+      const temp = Number(payload?.temp ?? payload?.value ?? 0)
+      const ts = Number(payload?.ts ?? payload?.timestamp ?? Date.now())
+      trendPoints.value.push({ timestamp: ts, value: temp })
+      // 仅保留最近 200 个点，避免无限增长
+      if (trendPoints.value.length > 200) trendPoints.value.shift()
+      if (!chart) return
+      chart.setOption({
+        xAxis: { data: trendPoints.value.map((p) => formatTime(p.timestamp)) },
+        series: [{ name: '温度', data: trendPoints.value.map((p) => p.value) }],
+      })
+    },
+  )
+}
+
+// 设备切换时重新加载趋势 + 重新订阅实时遥测
+watch(selectedDeviceId, () => {
+  subscribeTelemetry()
+})
 
 const initChart = () => {
   if (!chartRef.value) return
@@ -272,9 +319,20 @@ onMounted(async () => {
   initPieChart()
   await loadOverview()
   updatePieChart()
-  await loadTrend()
+  // 先加载在线设备下拉，有选中设备时再加载趋势 + 订阅实时遥测
+  await loadDeviceOptions()
+  if (selectedDeviceId.value) {
+    await loadTrend()
+    subscribeTelemetry()
+  }
 })
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- end ----
+
+onUnmounted(() => {
+  unsubscribeTelemetry?.()
+  unsubscribeTelemetry = null
+  chart?.dispose()
+  pieChart?.dispose()
+})
 </script>
 
 <style scoped>
@@ -308,7 +366,6 @@ onMounted(async () => {
   margin-top: 4px;
 }
 
-/* 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- start ---- */
 /* card-header 改为 flex 布局以容纳设备ID下拉框 */
 .card-header {
   font-weight: bold;
@@ -316,5 +373,4 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
 }
-/* 修改内容：修改人：pengjunlin 时间：2026-08-04 17:30:00 -- end ---- */
 </style>

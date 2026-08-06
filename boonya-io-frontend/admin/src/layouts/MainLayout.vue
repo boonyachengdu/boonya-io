@@ -35,6 +35,13 @@
         </div>
         
         <div class="header-right">
+          <!-- 实时告警铃铛：订阅 MQTT alerts/# -->
+          <el-badge :value="alertStore.unreadCount" :hidden="alertStore.unreadCount === 0" :max="99" class="alert-badge">
+            <el-icon class="alert-bell" @click="router.push('/alerts')">
+              <Bell />
+            </el-icon>
+          </el-badge>
+
           <el-dropdown @command="handleCommand">
             <span class="user-info">
               <el-icon><User /></el-icon>
@@ -58,14 +65,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
+import { ElMessageBox, ElNotification } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import { useAlertStore } from '@/stores/alert'
+import { subscribe } from '@/composables/useMqtt'
+import { TOPIC_ALERTS, type RealtimeAlert } from '@/api/realtime'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const alertStore = useAlertStore()
 
 const isCollapse = ref(false)
 
@@ -79,15 +90,43 @@ const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
 }
 
+// 订阅 MQTT alerts/#：收到告警写入 store + 弹通知
+let unsubscribeAlerts: (() => void) | null = null
+onMounted(() => {
+  unsubscribeAlerts = subscribe(TOPIC_ALERTS, (topic, payload) => {
+    const alert: RealtimeAlert = {
+      message: payload?.message || '未知告警',
+      deviceId: payload?.deviceId || topic.split('/')[1] || 'unknown',
+      temp: Number(payload?.temp ?? payload?.value ?? 0),
+      timestamp: Number(payload?.timestamp ?? payload?.ts ?? Date.now()),
+    }
+    alertStore.pushAlert(alert)
+    ElNotification({
+      title: '设备告警',
+      message: `${alert.deviceId}：${alert.message}`,
+      type: 'warning',
+      duration: 5000,
+    })
+  })
+})
+onUnmounted(() => {
+  unsubscribeAlerts?.()
+})
+
 const handleCommand = async (command: string) => {
   if (command === 'logout') {
-    await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    })
-    await userStore.logout()
-    router.push('/login')
+    try {
+      await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      })
+      await userStore.logout()
+    } catch {
+      // 用户取消或退出失败，都不处理
+    } finally {
+      router.push('/login')
+    }
   }
 }
 </script>
@@ -156,6 +195,22 @@ const handleCommand = async (command: string) => {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 16px;
+}
+
+.alert-badge {
+  margin-right: 4px;
+}
+
+.alert-bell {
+  font-size: 20px;
+  cursor: pointer;
+  color: #606266;
+  transition: color 0.3s;
+}
+
+.alert-bell:hover {
+  color: #e6a23c;
 }
 
 .user-info {

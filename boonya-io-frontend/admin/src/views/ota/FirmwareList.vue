@@ -86,6 +86,18 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 分页组件 -->
+      <el-pagination
+        v-model:current-page="pagination.page"
+        v-model:page-size="pagination.size"
+        :total="pagination.total"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        style="margin-top: 20px; justify-content: flex-end"
+        @size-change="loadFirmwares"
+        @current-change="loadFirmwares"
+      />
     </el-card>
 
     <!-- 上传固件对话框 -->
@@ -147,7 +159,6 @@ import {
 } from '@/api/firmware'
 import type { Firmware } from '@/api/firmware'
 
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:40:00 -- start ----
 // 重写固件管理页面，对接后端固件管理 API：列表查询/筛选、上传、发布、归档、删除、查看
 const firmwares = ref<Firmware[]>([])
 const loading = ref(false)
@@ -157,6 +168,12 @@ const uploading = ref(false)
 const searchForm = reactive({
   deviceModel: '',
   status: '',
+})
+
+const pagination = reactive({
+  page: 1,
+  size: 20,
+  total: 0,
 })
 
 const uploadForm = reactive({
@@ -174,25 +191,32 @@ onMounted(() => {
 const loadFirmwares = async () => {
   loading.value = true
   try {
-    const params: { deviceModel?: string; status?: string } = {}
-    if (searchForm.deviceModel) params.deviceModel = searchForm.deviceModel
-    if (searchForm.status) params.status = searchForm.status
-    const data = await getFirmwareList(params)
-    firmwares.value = data || []
+    const page = await getFirmwareList({
+      pageNum: pagination.page,
+      pageSize: pagination.size,
+      deviceModel: searchForm.deviceModel || undefined,
+      status: searchForm.status || undefined,
+    })
+    firmwares.value = page?.records || []
+    pagination.total = Number(page?.total ?? 0)
   } catch (error) {
     console.error('Load firmwares error:', error)
+    firmwares.value = []
+    pagination.total = 0
   } finally {
     loading.value = false
   }
 }
 
 const handleSearch = () => {
+  pagination.page = 1
   loadFirmwares()
 }
 
 const handleReset = () => {
   searchForm.deviceModel = ''
   searchForm.status = ''
+  pagination.page = 1
   loadFirmwares()
 }
 
@@ -352,7 +376,6 @@ const getStatusText = (status: string) => {
   }
   return texts[status] || status
 }
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:40:00 -- end ----
 </script>
 
 <style scoped>

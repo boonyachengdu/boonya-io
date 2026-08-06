@@ -1,6 +1,4 @@
 package com.boonya.lab.io.common.tenant;
-
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- start ----
 /**
  * 多租户上下文，基于 ThreadLocal 保存当前请求的租户ID
  */
@@ -19,4 +17,3 @@ public class TenantContext {
         CURRENT_TENANT.remove();
     }
 }
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 19:00:00 -- end ----

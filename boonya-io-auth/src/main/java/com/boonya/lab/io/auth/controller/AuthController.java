@@ -2,12 +2,14 @@ package com.boonya.lab.io.auth.controller;
 
 import com.boonya.lab.io.auth.dto.LoginRequest;
 import com.boonya.lab.io.auth.dto.LoginResponse;
+import com.boonya.lab.io.auth.dto.RefreshTokenRequest;
 import com.boonya.lab.io.auth.service.AuthService;
 import com.boonya.lab.io.common.response.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,15 +29,18 @@ public class AuthController {
 
     @PostMapping("/refresh")
     @Operation(summary = "刷新 Token", description = "使用 Refresh Token 获取新的 Access Token")
-    public Result<LoginResponse> refreshToken(@RequestParam String refreshToken) {
-        LoginResponse response = authService.refreshToken(refreshToken);
+    public Result<LoginResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        LoginResponse response = authService.refreshToken(request.getRefreshToken());
         return Result.success("Token 刷新成功", response);
     }
 
     @PostMapping("/logout")
     @Operation(summary = "用户登出", description = "将 Access Token 加入黑名单")
-    public Result<Void> logout(@RequestParam String accessToken) {
-        authService.logout(accessToken);
+    public Result<Void> logout(@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String accessToken = authHeader.substring(7);
+            authService.logout(accessToken);
+        }
         return Result.success("登出成功", null);
     }
 

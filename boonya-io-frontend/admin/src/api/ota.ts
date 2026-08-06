@@ -1,6 +1,6 @@
 import request from '@/utils/request'
+import type { PageResult } from './device'
 
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:25:00 -- start ----
 // 新增 OTA 任务管理 API，对接后端 OTA 服务
 
 // OTA 任务
@@ -15,6 +15,21 @@ export interface OtaTask {
   completeTime?: string
   createTime?: string
   updateTime?: string
+}
+
+// 全局分页查询参数
+export interface OtaTaskQueryParams {
+  pageNum?: number
+  pageSize?: number
+  deviceId?: string
+  status?: string
+}
+
+/**
+ * 全局分页查询 OTA 任务
+ */
+export function queryOtaTasks(params?: OtaTaskQueryParams) {
+  return request.get<PageResult<OtaTask>>('/ota/tasks', { params })
 }
 
 /**
@@ -34,7 +49,7 @@ export function getOtaTaskById(id: number) {
 }
 
 /**
- * 获取设备任务列表
+ * 获取设备任务列表（旧接口保留兼容，按设备ID查全部，不分页）
  */
 export function getDeviceOtaTasks(deviceId: string) {
   return request.get<OtaTask[]>(`/ota/tasks/device/${deviceId}`)
@@ -56,4 +71,3 @@ export function updateOtaTaskStatus(
 export function cancelOtaTask(id: number) {
   return request.post<OtaTask>(`/ota/tasks/${id}/cancel`)
 }
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:25:00 -- end ----

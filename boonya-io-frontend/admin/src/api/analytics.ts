@@ -1,6 +1,5 @@
 import request from '@/utils/request'
 
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:15:00 -- start ----
 // 新增数据分析 API，对接后端 Analytics 服务
 
 // 设备实时数据
@@ -49,4 +48,3 @@ export function getDeviceTrend(deviceId: string, period: string = '24h') {
     params: { period },
   })
 }
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:15:00 -- end ----

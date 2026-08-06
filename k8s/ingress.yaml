@@ -1,4 +1,3 @@
-# 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
 # Ingress 规则（可选）：统一通过域名访问 Gateway
 # 部署命令：kubectl apply -f ingress.yaml -n boonya-iot
 # 前提：集群已安装 Ingress Controller（如 ingress-nginx）
@@ -30,4 +29,3 @@ spec:
                 name: boonya-io-gateway
                 port:
                   number: 8080
-# 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----

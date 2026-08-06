@@ -1,4 +1,3 @@
-# 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- start ----
 # 应用层：6 个微服务 Deployment + ClusterIP Service
 # 部署命令：kubectl apply -f apps.yaml -n boonya-iot
 # 注意：镜像名格式 boonya-io/<service>:<tag>，构建后推送到镜像仓库后修改 image 字段
@@ -322,4 +321,3 @@ spec:
     - port: 8085
       targetPort: 8085
   type: ClusterIP
-# 修改内容：修改人：pengjunlin 时间：2026-08-04 18:30:00 -- end ----

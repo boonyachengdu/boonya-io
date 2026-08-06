@@ -1,6 +1,5 @@
 package com.boonya.lab.io.iot.mqtt.impl;
 
-
 import com.boonya.lab.io.iot.mqtt.MqttClientWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +21,20 @@ public class EmqxMqttClientWrapper implements MqttClientWrapper {
 
     @Override
     public void publish(String topic, byte[] payload, int qos) throws Exception {
+        if (!mqttClient.isConnected()) {
+            synchronized (this) {
+                if (!mqttClient.isConnected()) {
+                    try {
+                        mqttClient.reconnect();
+                        log.warn("MQTT client reconnected before publishing to {}", topic);
+                    } catch (Exception re) {
+                        log.warn("MQTT reconnect failed (topic {}), will retry next cycle: {}",
+                                topic, re.getMessage());
+                        throw re;
+                    }
+                }
+            }
+        }
         MqttMessage message = new MqttMessage(payload);
         message.setQos(qos);
         mqttClient.publish(topic, message);

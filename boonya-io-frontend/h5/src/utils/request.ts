@@ -15,7 +15,6 @@ service.interceptors.request.use((config) => {
   return config
 })
 
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 18:00:00 -- start ----
 // Token 自动刷新 + 兼容两种后端响应格式
 
 let isRefreshing = false
@@ -97,6 +96,5 @@ service.interceptors.response.use(
     return Promise.reject(error)
   }
 )
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 18:00:00 -- end ----
 
 export default service

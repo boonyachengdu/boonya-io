@@ -1,6 +1,6 @@
 import request from '@/utils/request'
+import type { PageResult } from './device'
 
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:20:00 -- start ----
 // 新增固件管理 API，对接后端 OTA 服务
 
 // 固件信息
@@ -20,11 +20,19 @@ export interface Firmware {
   publishTime?: string
 }
 
+// 固件分页查询参数
+export interface FirmwareQueryParams {
+  pageNum?: number
+  pageSize?: number
+  deviceModel?: string
+  status?: string
+}
+
 /**
- * 获取固件列表
+ * 获取固件列表（分页）
  */
-export function getFirmwareList(params?: { deviceModel?: string; status?: string }) {
-  return request.get<Firmware[]>('/firmware', { params })
+export function getFirmwareList(params?: FirmwareQueryParams) {
+  return request.get<PageResult<Firmware>>('/firmware', { params })
 }
 
 /**
@@ -76,4 +84,3 @@ export function archiveFirmware(id: number) {
 export function deleteFirmware(id: number) {
   return request.delete(`/firmware/${id}`)
 }
-// 修改内容：修改人：pengjunlin 时间：2026-08-04 17:20:00 -- end ----
