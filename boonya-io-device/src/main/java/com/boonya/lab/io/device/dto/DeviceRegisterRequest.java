@@ -22,6 +22,9 @@ public class DeviceRegisterRequest {
     @Schema(description = "设备型号", example = "TMP-100")
     private String model;
 
+    @Schema(description = "关联产品Key", example = "temp_sensor_v1")
+    private String productKey;
+
     @Schema(description = "所属分组ID")
     private Long groupId;
 

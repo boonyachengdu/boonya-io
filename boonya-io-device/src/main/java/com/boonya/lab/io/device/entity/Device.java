@@ -30,6 +30,9 @@ public class Device {
     @Schema(description = "固件版本", example = "1.0.0")
     private String firmwareVersion;
 
+    @Schema(description = "关联产品Key")
+    private String productKey;
+
     @Schema(description = "设备状态：online-在线, offline-离线, inactive-未激活, disabled-禁用")
     private String status;
 

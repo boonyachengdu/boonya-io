@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -30,33 +31,38 @@ public class JwtUtils {
     }
 
     /**
-     * 生成访问 Token
+     * 生成访问 Token（包含角色信息）
      */
-    public String generateAccessToken(String userId, String username) {
-        return generateToken(userId, username, expiration);
+    public String generateAccessToken(String userId, String username, List<String> roles) {
+        return generateToken(userId, username, roles, expiration);
     }
 
     /**
-     * 生成刷新 Token
+     * 生成刷新 Token（不含角色信息）
      */
     public String generateRefreshToken(String userId, String username) {
-        return generateToken(userId, username, refreshExpiration);
+        return generateToken(userId, username, null, refreshExpiration);
     }
 
     /**
      * 生成 Token
      */
-    private String generateToken(String userId, String username, long expirationTime) {
+    private String generateToken(String userId, String username, List<String> roles, long expirationTime) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expirationTime);
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(username)
                 .claim("userId", userId)
                 .issuedAt(now)
-                .expiration(expiryDate)
-                .signWith(secretKey)
-                .compact();
+                .expiration(expiryDate);
+
+        // 角色列表放入 Token claims
+        if (roles != null && !roles.isEmpty()) {
+            builder.claim("roles", roles);
+        }
+
+        return builder.signWith(secretKey).compact();
     }
 
     /**
@@ -112,6 +118,22 @@ public class JwtUtils {
     }
 
     /**
+     * 从 Token 中获取角色列表
+     */
+    @SuppressWarnings("unchecked")
+    public List<String> getRolesFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        if (claims == null) {
+            return List.of();
+        }
+        Object roles = claims.get("roles");
+        if (roles instanceof List) {
+            return (List<String>) roles;
+        }
+        return List.of();
+    }
+
+    /**
      * 刷新 Token
      */
     public String refreshToken(String token) {
@@ -122,7 +144,8 @@ public class JwtUtils {
 
         String userId = claims.get("userId", String.class);
         String username = claims.getSubject();
+        List<String> roles = getRolesFromToken(token);
 
-        return generateAccessToken(userId, username);
+        return generateAccessToken(userId, username, roles);
     }
 }

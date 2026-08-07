@@ -58,11 +58,11 @@ spring:
                 redis-rate-limiter.burstCapacity: 40
                 key-resolver: "#{@ipKeyResolver}"
 
-        # 设备管理服务
-        - id: device-service
-          uri: lb://boonya-io-device
+        # 权限管理服务
+        - id: permission-service
+          uri: lb://boonya-io-auth
           predicates:
-            - Path=/api/devices/**
+            - Path=/api/permissions/**
           filters:
             - StripPrefix=0
             - name: RequestRateLimiter
@@ -71,11 +71,24 @@ spring:
                 redis-rate-limiter.burstCapacity: 40
                 key-resolver: "#{@ipKeyResolver}"
 
-        # IoT 核心服务
+        # 设备管理服务（含告警管理）
+        - id: device-service
+          uri: lb://boonya-io-device
+          predicates:
+            - Path=/api/devices/**,/api/alerts/**
+          filters:
+            - StripPrefix=0
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                key-resolver: "#{@ipKeyResolver}"
+
+        # IoT 核心服务（含设备历史、AI 分析、规则管理、告警）
         - id: iot-service
           uri: lb://boonya-io-iot
           predicates:
-            - Path=/api/iot/**
+            - Path=/api/iot/**,/api/rules/**
           filters:
             - StripPrefix=0
             - name: RequestRateLimiter

@@ -73,6 +73,11 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             String userId = claims.get("userId", String.class);
             String username = claims.getSubject();
 
+            // 从 Token 中解析角色列表，以逗号分隔透传给下游服务
+            @SuppressWarnings("unchecked")
+            List<String> roles = claims.get("roles", List.class);
+            String rolesHeader = roles != null ? String.join(",", roles) : "";
+
             String blacklistKey = TOKEN_BLACKLIST_KEY + token;
             return redisTemplate.hasKey(blacklistKey)
                     .onErrorResume(e -> {
@@ -86,6 +91,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                         ServerHttpRequest modifiedRequest = request.mutate()
                                 .header("X-User-Id", userId)
                                 .header("X-Username", username)
+                                .header("X-User-Roles", rolesHeader)
                                 .build();
                         return chain.filter(exchange.mutate().request(modifiedRequest).build());
                     });

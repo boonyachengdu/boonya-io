@@ -105,3 +105,66 @@ export function getOnlineDevices() {
 export function getDeviceStatus(deviceId: string) {
   return request.get<{ deviceId: string; status: string }>(`/devices/${deviceId}/status`)
 }
+
+// ===== 设备详情相关类型与 API =====
+
+/** 设备历史数据点（用于趋势图） */
+export interface DeviceHistoryPoint {
+  timestamp: number
+  temp?: number
+  humidity?: number
+  value?: number
+  [key: string]: any
+}
+
+/** 操作日志记录 */
+export interface DeviceLog {
+  id: number
+  deviceId: string
+  action?: string
+  operation?: string
+  detail?: string
+  operator?: string
+  createTime?: string
+  [key: string]: any
+}
+
+/** 设备日志查询参数 */
+export interface DeviceLogQueryParams {
+  pageNum?: number
+  pageSize?: number
+  deviceId?: string
+  action?: string
+}
+
+/**
+ * 根据 deviceId（字符串设备标识）获取设备详情
+ */
+export function getDeviceByDeviceId(deviceId: string) {
+  return request.get<Device>(`/devices/by-device-id/${deviceId}`)
+}
+
+/**
+ * 获取设备历史数据（温度趋势等）
+ * @param deviceId 设备ID
+ * @param timeRange 时间范围：1h / 6h / 24h
+ */
+export function getDeviceHistory(deviceId: string, timeRange: string = '24h') {
+  return request.get<DeviceHistoryPoint[]>(`/devices/${deviceId}/history`, {
+    params: { timeRange },
+  })
+}
+
+/**
+ * 获取设备操作日志（分页）
+ */
+export function getDeviceLogs(deviceId: string, params?: DeviceLogQueryParams) {
+  return request.get<PageResult<DeviceLog>>(`/devices/${deviceId}/logs`, { params })
+}
+
+/**
+ * 更新设备状态（按字符串 deviceId）
+ */
+export function updateDeviceStatusByDeviceId(deviceId: string, status: string) {
+  return request.put(`/devices/by-device-id/${deviceId}`, null, { params: { status } })
+}

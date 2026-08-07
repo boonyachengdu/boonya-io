@@ -47,6 +47,7 @@ public class DeviceService {
         device.setDeviceName(request.getDeviceName());
         device.setDeviceType(request.getDeviceType());
         device.setModel(request.getModel());
+        device.setProductKey(request.getProductKey());
         device.setGroupId(request.getGroupId());
         device.setLocation(request.getLocation());
         device.setDescription(request.getDescription());

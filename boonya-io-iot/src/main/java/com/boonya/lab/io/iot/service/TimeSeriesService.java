@@ -82,7 +82,7 @@ public class TimeSeriesService {
             return;
         }
 
-        DeviceData data = new DeviceData(ts, temp);
+        DeviceData data = new DeviceData(deviceId, ts, temp);
 
         // 如果连接健康，直接写入
         if (connectionHealthy.get()) {
@@ -172,20 +172,32 @@ public class TimeSeriesService {
             return;
         }
 
-        log.info("Flushing {} pending writes...", pendingWrites.size());
+        int total = pendingWrites.size();
+        log.info("Flushing {} pending writes...", total);
 
-        while (!pendingWrites.isEmpty()) {
+        int success = 0;
+        int failed = 0;
+        int maxBatch = 1000; // 限制单次 flush 数量防止阻塞
+        int count = 0;
+
+        while (!pendingWrites.isEmpty() && count < maxBatch) {
             DeviceData data = pendingWrites.poll();
             if (data != null) {
                 try {
-                    log.debug("Flushed pending write: ts={}, value={}", data.getTimestamp(), data.getValue());
+                    doSave(data.getDeviceId(), data.getValue(), data.getTimestamp());
+                    success++;
                 } catch (Exception e) {
-                    log.error("Failed to flush pending write: {}", e.getMessage());
+                    log.error("Failed to flush pending write: deviceId={}, ts={}, error={}",
+                            data.getDeviceId(), data.getTimestamp(), e.getMessage());
                     pendingWrites.offer(data); // 重新加入队列
-                    break;
+                    failed++;
+                    break; // 写入失败说明连接仍有问题，停止 flush
                 }
             }
+            count++;
         }
+
+        log.info("Flush complete: {} success, {} failed out of {} pending", success, failed, total);
     }
 
     public List<DeviceData> queryHistory(String deviceId, long startTs, long endTs) {
@@ -199,7 +211,7 @@ public class TimeSeriesService {
 
             String sql = "SELECT ts, ts_value FROM " + tableName + " WHERE ts >= ? AND ts <= ?";
             return jdbcTemplate.query(sql, new Object[]{new Timestamp(startTs), new Timestamp(endTs)},
-                    (rs, rowNum) -> new DeviceData(rs.getTimestamp("ts").getTime(), rs.getDouble("ts_value")));
+                    (rs, rowNum) -> new DeviceData(safeDeviceId, rs.getTimestamp("ts").getTime(), rs.getDouble("ts_value")));
         } catch (Exception e) {
             log.error("Failed to query history: {}", e.getMessage());
             connectionHealthy.set(false);

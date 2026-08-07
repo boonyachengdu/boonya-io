@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DeviceData {
+    private String deviceId;
     private long timestamp;
     private double value;
 }

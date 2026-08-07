@@ -1,0 +1,226 @@
+/**
+ * Boonya IoT 全局样式
+ * 设计系统变量 + Element Plus 主题覆盖 + 滚动条美化
+ */
+
+/* ===== 设计系统变量 ===== */
+:root {
+  /* 品牌色 - IoT 科技深蓝 */
+  --boonya-primary: #0d2847;
+  --boonya-primary-light: #103a5c;
+  --boonya-accent: #00d4ff;
+  --boonya-accent-soft: rgba(0, 212, 255, 0.15);
+
+  /* 文字色 */
+  --boonya-text-primary: #0a1929;
+  --boonya-text-regular: #475669;
+  --boonya-text-secondary: #8492a6;
+  --boonya-text-placeholder: #c0c4cc;
+
+  /* 背景色 */
+  --boonya-bg-page: #f0f2f5;
+  --boonya-bg-card: #ffffff;
+  --boonya-border-light: #ebeef5;
+  --boonya-border-lighter: #f0f2f5;
+
+  /* 圆角 */
+  --boonya-radius-sm: 8px;
+  --boonya-radius-md: 12px;
+  --boonya-radius-lg: 14px;
+
+  /* 阴影 */
+  --boonya-shadow-sm: 0 1px 3px rgba(0, 21, 41, 0.04);
+  --boonya-shadow-md: 0 2px 8px rgba(0, 21, 41, 0.08);
+  --boonya-shadow-lg: 0 8px 24px rgba(0, 21, 41, 0.12);
+
+  /* Element Plus 主题覆盖 */
+  --el-color-primary: #0d2847;
+  --el-color-primary-light-3: #3a5a7a;
+  --el-color-primary-light-5: #6a8aaa;
+  --el-color-primary-light-7: #9ab5ca;
+  --el-color-primary-light-8: #b5cadd;
+  --el-color-primary-light-9: #d0e0ec;
+  --el-color-primary-dark-2: #0a1f38;
+  --el-border-radius-base: 8px;
+}
+
+/* ===== 基础重置 ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--boonya-bg-page);
+  color: var(--boonya-text-primary);
+}
+
+/* ===== 滚动条美化 ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(144, 147, 153, 0.3);
+  border-radius: 3px;
+  transition: background 0.3s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(144, 147, 153, 0.5);
+}
+
+/* 侧边栏深色滚动条 */
+.layout-aside ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.layout-aside ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ===== Element Plus 通用覆盖 ===== */
+
+/* 卡片圆角 */
+.el-card {
+  border-radius: var(--boonya-radius-lg);
+  border: none;
+  box-shadow: var(--boonya-shadow-sm);
+}
+
+.el-card.is-hover-shadow:hover {
+  box-shadow: var(--boonya-shadow-md);
+}
+
+/* 表格美化 */
+.el-table {
+  border-radius: var(--boonya-radius-sm);
+  overflow: hidden;
+}
+
+.el-table th.el-table__cell {
+  background: #fafbfc !important;
+  color: var(--boonya-text-regular);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.el-table td.el-table__cell {
+  font-size: 13px;
+}
+
+/* 按钮 */
+.el-button--primary {
+  background: var(--boonya-primary);
+  border-color: var(--boonya-primary);
+}
+
+.el-button--primary:hover {
+  background: var(--boonya-primary-light);
+  border-color: var(--boonya-primary-light);
+}
+
+/* 对话框 */
+.el-dialog {
+  border-radius: var(--boonya-radius-lg);
+  overflow: hidden;
+}
+
+.el-dialog__header {
+  border-bottom: 1px solid var(--boonya-border-lighter);
+  padding: 16px 20px;
+  margin-right: 0;
+}
+
+.el-dialog__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--boonya-text-primary);
+}
+
+.el-dialog__body {
+  padding: 20px;
+}
+
+.el-dialog__footer {
+  border-top: 1px solid var(--boonya-border-lighter);
+  padding: 12px 20px;
+}
+
+/* 分页 */
+.el-pagination {
+  margin-top: 16px;
+  justify-content: flex-end;
+}
+
+.el-pagination .el-pager li.is-active {
+  background: var(--boonya-primary) !important;
+  color: #fff !important;
+  border-radius: var(--boonya-radius-sm);
+}
+
+/* 输入框 */
+.el-input__wrapper {
+  border-radius: var(--boonya-radius-sm);
+}
+
+.el-select .el-input__wrapper {
+  border-radius: var(--boonya-radius-sm);
+}
+
+/* 标签 */
+.el-tag {
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+/* 消息提示 */
+.el-message {
+  border-radius: var(--boonya-radius-sm);
+}
+
+/* 通知 */
+.el-notification {
+  border-radius: var(--boonya-radius-md);
+  border: none;
+  box-shadow: var(--boonya-shadow-lg);
+}
+
+/* 表单 */
+.el-form-item__label {
+  font-weight: 500;
+  color: var(--boonya-text-regular);
+}
+
+/* 下拉菜单 */
+.el-dropdown-menu {
+  border-radius: var(--boonya-radius-sm);
+  box-shadow: var(--boonya-shadow-lg);
+  border: none;
+}
+
+/* 面包屑 */
+.el-breadcrumb {
+  font-size: 14px;
+}
+
+/* 加载 */
+.el-loading-mask {
+  border-radius: inherit;
+}

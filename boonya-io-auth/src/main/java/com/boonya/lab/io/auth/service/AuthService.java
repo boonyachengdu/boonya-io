@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.boonya.lab.io.auth.dto.LoginRequest;
 import com.boonya.lab.io.auth.dto.LoginResponse;
 import com.boonya.lab.io.auth.entity.User;
+import com.boonya.lab.io.auth.mapper.PermissionMapper;
 import com.boonya.lab.io.auth.mapper.UserMapper;
+import com.boonya.lab.io.auth.mapper.UserRoleMapper;
 import com.boonya.lab.io.auth.util.JwtUtils;
 import com.boonya.lab.io.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -25,6 +26,8 @@ import java.util.concurrent.TimeUnit;
 public class AuthService {
 
     private final UserMapper userMapper;
+    private final UserRoleMapper userRoleMapper;
+    private final PermissionMapper permissionMapper;
     private final JwtUtils jwtUtils;
     private final RedisTemplate<String, Object> redisTemplate;
     private final PasswordEncoder passwordEncoder;
@@ -54,9 +57,21 @@ public class AuthService {
             throw new BusinessException("用户账户已被禁用");
         }
 
-        // 生成 Token
+        // 查询用户实际角色
+        List<String> roles = userRoleMapper.selectRoleCodesByUserId(user.getId());
+        if (roles == null || roles.isEmpty()) {
+            roles = List.of();
+        }
+
+        // 查询用户权限编码（user→role→permission 三表关联）
+        List<String> permissions = permissionMapper.selectPermissionCodesByUserId(user.getId());
+        if (permissions == null) {
+            permissions = List.of();
+        }
+
+        // 生成 Token（包含角色信息）
         String userId = String.valueOf(user.getId());
-        String accessToken = jwtUtils.generateAccessToken(userId, user.getUsername());
+        String accessToken = jwtUtils.generateAccessToken(userId, user.getUsername(), roles);
         String refreshToken = jwtUtils.generateRefreshToken(userId, user.getUsername());
 
         // 更新最后登录时间
@@ -66,13 +81,13 @@ public class AuthService {
         log.info("用户登录成功: {}", user.getUsername());
 
         // 构建响应
-        List<String> roles = Collections.singletonList("admin");
         LoginResponse.UserInfo userInfo = LoginResponse.UserInfo.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .realName(user.getRealName())
                 .email(user.getEmail())
                 .roles(roles)
+                .permissions(permissions)
                 .build();
 
         return LoginResponse.builder()
@@ -101,8 +116,14 @@ public class AuthService {
         String userId = jwtUtils.getUserIdFromToken(refreshToken);
         String username = jwtUtils.getUsernameFromToken(refreshToken);
 
+        // 重新查询用户角色（refresh token 不含角色信息）
+        List<String> roles = userRoleMapper.selectRoleCodesByUserId(Long.valueOf(userId));
+        if (roles == null || roles.isEmpty()) {
+            roles = List.of();
+        }
+
         // 生成新的 Access Token
-        String newAccessToken = jwtUtils.generateAccessToken(userId, username);
+        String newAccessToken = jwtUtils.generateAccessToken(userId, username, roles);
 
         return LoginResponse.builder()
                 .accessToken(newAccessToken)

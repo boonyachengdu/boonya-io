@@ -21,22 +21,21 @@ public class MqttSubscriber {
     private final MqttClientWrapper mqttClient;
     private final TimeSeriesService timeSeriesService;
     private final RuleEngine ruleEngine;
+    private final ThingModelCacheService thingModelCacheService;
 
     @EventListener(ApplicationReadyEvent.class)
     public void subscribe() {
         try {
             ruleEngine.initDefaultRules();
 
-            // 通用设备遥测（温度传感器）
+            // 通用设备遥测（基于物模型动态解析）
             mqttClient.subscribe("device/+/telemetry", (topic, payload) -> {
-                log.info("Received message - Topic: {}, Payload: {}", topic, new String(payload));
                 String deviceId = topic.split("/")[1];
                 String message = new String(payload);
                 handleDeviceData(deviceId, message);
             });
 
             // 能碳设备指标（电表/水表/光伏/储能）
-            // 主题：device/{deviceId}/energy，payload: {"metricType":"electricity","value":123.45,"ts":...}
             mqttClient.subscribe("device/+/energy", (topic, payload) -> {
                 String deviceId = topic.split("/")[1];
                 handleEnergyData(deviceId, new String(payload));
@@ -50,21 +49,36 @@ public class MqttSubscriber {
 
     private void handleDeviceData(String deviceId, String payload) {
         try {
-            JsonNode json = JsonUtils.parse(payload);
-            double temp = json.get("temp").asDouble();
-            long ts = json.has("ts") ? json.get("ts").asLong() : System.currentTimeMillis();
+            // 通过物模型缓存服务获取 productKey 并解析 payload
+            String productKey = thingModelCacheService.getDeviceProductKey(deviceId);
+            Map<String, Object> data = thingModelCacheService.parsePayload(productKey, payload);
 
-            // 存储到时序数据库
-            timeSeriesService.save(deviceId, temp, ts);
+            long ts = data.containsKey("ts") ? ((Number) data.get("ts")).longValue() : System.currentTimeMillis();
 
-            // 使用规则引擎评估
-            Map<String, Object> data = new HashMap<>();
-            data.put("temp", temp);
-            data.put("ts", ts);
+            // 存储到时序数据库：遍历所有数值属性写入 device_properties 超表
+            for (Map.Entry<String, Object> entry : data.entrySet()) {
+                String identifier = entry.getKey();
+                if ("ts".equals(identifier)) continue;
+                Object value = entry.getValue();
+                if (value instanceof Number) {
+                    timeSeriesService.saveProperty(deviceId, identifier, ((Number) value).doubleValue(), ts);
+                }
+            }
+
+            // 兼容历史：如果有 temp 属性，同时写入 iot.devices 超表（保留原有温度趋势查询）
+            if (data.containsKey("temp") && data.get("temp") instanceof Number) {
+                double temp = ((Number) data.get("temp")).doubleValue();
+                timeSeriesService.save(deviceId, temp, ts);
+            }
+
+            // 使用规则引擎评估（传入完整属性 Map）
             ruleEngine.evaluate(deviceId, data);
 
+            // 预留：设备影子 reported 更新（Phase 2 实现）
+            // deviceShadowService.updateReported(deviceId, data);
+
         } catch (Exception e) {
-            log.error("Error processing device data", e);
+            log.error("Error processing device data for {}: {}", deviceId, e.getMessage());
         }
     }
 

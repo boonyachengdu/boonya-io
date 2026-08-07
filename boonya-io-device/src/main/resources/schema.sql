@@ -44,3 +44,27 @@ CREATE TABLE IF NOT EXISTS device_log (
 
 CREATE INDEX idx_log_device_id ON device_log(device_id);
 CREATE INDEX idx_log_create_time ON device_log(create_time);
+
+-- 告警表
+CREATE TABLE IF NOT EXISTS device_alert (
+    id BIGSERIAL PRIMARY KEY,
+    device_id VARCHAR(64) NOT NULL,
+    alert_type VARCHAR(32) NOT NULL,
+    severity VARCHAR(16) NOT NULL DEFAULT 'WARNING',
+    title VARCHAR(256) NOT NULL,
+    message TEXT,
+    metric_value DOUBLE PRECISION,
+    threshold DOUBLE PRECISION,
+    status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+    trigger_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ack_time TIMESTAMP,
+    resolve_time TIMESTAMP,
+    operator VARCHAR(64),
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_alert_device_id ON device_alert(device_id);
+CREATE INDEX IF NOT EXISTS idx_alert_status ON device_alert(status);
+CREATE INDEX IF NOT EXISTS idx_alert_severity ON device_alert(severity);
+CREATE INDEX IF NOT EXISTS idx_alert_trigger_time ON device_alert(trigger_time);

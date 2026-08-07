@@ -49,5 +49,8 @@ public class LoginResponse {
 
         @Schema(description = "角色列表")
         private List<String> roles;
+
+        @Schema(description = "权限编码列表")
+        private List<String> permissions;
     }
 }

@@ -50,3 +50,14 @@ logging:
 
 server:
   port: 8081
+
+# PostgreSQL 数据源（独立于 TDengine，用于告警持久化 device_alert / 规则持久化 alert_rule）
+# 连接 iot_device 库；未配置 url 时 PgJdbcConfig 不会创建 Bean，相关功能自动降级
+pg:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/iot_device
+    username: postgres
+    password: boonya
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5

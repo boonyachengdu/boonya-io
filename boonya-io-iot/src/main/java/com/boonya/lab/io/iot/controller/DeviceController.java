@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/devices")
+@RequestMapping("/api/iot/devices")
 @RequiredArgsConstructor
 public class DeviceController {
 

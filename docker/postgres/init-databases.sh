@@ -54,6 +54,58 @@ CREATE TABLE IF NOT EXISTS device_log (
 );
 CREATE INDEX IF NOT EXISTS idx_device_log_device_id ON device_log(device_id);
 CREATE INDEX IF NOT EXISTS idx_device_log_create_time ON device_log(create_time);
+
+-- 设备表添加 product_key 列（兼容已有数据）
+ALTER TABLE device ADD COLUMN IF NOT EXISTS product_key VARCHAR(64);
+CREATE INDEX IF NOT EXISTS idx_device_product_key ON device(product_key);
+
+-- 产品（设备模板）
+CREATE TABLE IF NOT EXISTS iot_product (
+    id BIGSERIAL PRIMARY KEY,
+    product_key VARCHAR(64) UNIQUE NOT NULL,
+    product_name VARCHAR(128) NOT NULL,
+    node_type VARCHAR(16) DEFAULT 'DIRECT',
+    protocol_type VARCHAR(16) DEFAULT 'MQTT',
+    data_format VARCHAR(16) DEFAULT 'JSON',
+    description TEXT,
+    enabled BOOLEAN DEFAULT TRUE,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_iot_product_key ON iot_product(product_key);
+
+-- 物模型属性
+CREATE TABLE IF NOT EXISTS iot_thing_model (
+    id BIGSERIAL PRIMARY KEY,
+    product_key VARCHAR(64) NOT NULL,
+    identifier VARCHAR(64) NOT NULL,
+    name VARCHAR(128) NOT NULL,
+    data_type VARCHAR(16) NOT NULL,
+    unit VARCHAR(32),
+    min_value DOUBLE PRECISION,
+    max_value DOUBLE PRECISION,
+    access_mode VARCHAR(16) DEFAULT 'RW',
+    description TEXT,
+    sort INTEGER DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(product_key, identifier)
+);
+CREATE INDEX IF NOT EXISTS idx_iot_thing_model_product_key ON iot_thing_model(product_key);
+
+-- 物模型服务
+CREATE TABLE IF NOT EXISTS iot_thing_service (
+    id BIGSERIAL PRIMARY KEY,
+    product_key VARCHAR(64) NOT NULL,
+    identifier VARCHAR(64) NOT NULL,
+    name VARCHAR(128) NOT NULL,
+    call_type VARCHAR(16) DEFAULT 'ASYNC',
+    input_params TEXT,
+    output_params TEXT,
+    description TEXT,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(product_key, identifier)
+);
+CREATE INDEX IF NOT EXISTS idx_iot_thing_service_product_key ON iot_thing_service(product_key);
 EOSQL
 
 # ========== iot_auth 表结构 ==========

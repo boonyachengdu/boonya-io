@@ -28,6 +28,9 @@ public class DeviceResponse {
     @Schema(description = "设备型号")
     private String model;
 
+    @Schema(description = "关联产品Key")
+    private String productKey;
+
     @Schema(description = "固件版本")
     private String firmwareVersion;
 

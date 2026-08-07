@@ -26,6 +26,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '设备管理', icon: 'Monitor' },
       },
       {
+        path: 'devices/:deviceId',
+        name: 'DeviceDetail',
+        component: () => import('@/views/devices/DeviceDetail.vue'),
+        meta: { title: '设备详情', hidden: true },
+      },
+      {
         path: 'firmware',
         name: 'Firmware',
         component: () => import('@/views/ota/FirmwareList.vue'),
@@ -50,6 +56,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '实时告警', icon: 'Bell' },
       },
       {
+        path: 'alert-rules',
+        name: 'AlertRuleList',
+        component: () => import('@/views/alerts/AlertRuleList.vue'),
+        meta: { title: '告警规则', icon: 'BellFilled' },
+      },
+      {
         path: 'energy',
         name: 'EnergyDashboard',
         component: () => import('@/views/energy/EnergyDashboard.vue'),
@@ -62,12 +74,24 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '用户管理', icon: 'UserFilled' },
       },
       {
+        path: 'system/roles',
+        name: 'RoleList',
+        component: () => import('@/views/system/RoleList.vue'),
+        meta: { title: '角色管理', icon: 'User' },
+      },
+      {
         path: 'ai-analysis',
         name: 'AiAnalysis',
         component: () => import('@/views/ai/AiAnalysis.vue'),
         meta: { title: 'AI分析', icon: 'Cpu' },
       },
     ],
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/views/NotFound.vue'),
+    meta: { title: '404', requiresAuth: false },
   },
 ]
 
@@ -79,7 +103,7 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
-  
+
   if (to.meta.requiresAuth !== false && !token) {
     next('/login')
   } else if (to.path === '/login' && token) {

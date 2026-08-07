@@ -103,3 +103,59 @@ export function updateRole(id: number, data: RoleCreateRequest) {
 export function deleteRole(id: number) {
   return request.delete(`/roles/${id}`)
 }
+
+// ===== 权限管理 API =====
+
+export interface PermissionItem {
+  id: number
+  parentId: number
+  name: string
+  code: string
+  type: string
+  path?: string
+  component?: string
+  icon?: string
+  sort: number
+  enabled: number
+  children?: PermissionItem[]
+}
+
+export function getPermissionTree() {
+  return request.get<PermissionItem[]>('/permissions/tree')
+}
+
+export function getPermissionList() {
+  return request.get<PermissionItem[]>('/permissions')
+}
+
+export function createPermission(data: Partial<PermissionItem>) {
+  return request.post<PermissionItem>('/permissions', data)
+}
+
+export function updatePermission(id: number, data: Partial<PermissionItem>) {
+  return request.put<PermissionItem>(`/permissions/${id}`, data)
+}
+
+export function deletePermission(id: number) {
+  return request.delete(`/permissions/${id}`)
+}
+
+export function getRolePermissions(roleId: number) {
+  return request.get<number[]>(`/roles/${roleId}/permissions`)
+}
+
+export function assignRolePermissions(roleId: number, permissionIds: number[]) {
+  return request.put(`/roles/${roleId}/permissions`, { permissionIds })
+}
+
+// ===== 用户更新 API =====
+
+export interface UserUpdateRequest {
+  realName?: string
+  email?: string
+  phone?: string
+}
+
+export function updateUser(id: number, data: UserUpdateRequest) {
+  return request.put(`/users/${id}`, data)
+}

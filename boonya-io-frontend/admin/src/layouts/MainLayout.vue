@@ -1,28 +1,38 @@
 <template>
   <el-container class="layout-container">
     <!-- 侧边栏 -->
-    <el-aside :width="isCollapse ? '64px' : '200px'" class="layout-aside">
+    <el-aside :width="isCollapse ? '64px' : '220px'" class="layout-aside">
       <div class="logo">
-        <span v-if="!isCollapse">Boonya IoT</span>
-        <span v-else>IoT</span>
+        <div class="logo-icon-mini">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="26" height="26" rx="6" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+            <circle cx="16" cy="16" r="7" stroke="currentColor" stroke-width="2"/>
+            <circle cx="16" cy="16" r="2.5" fill="currentColor"/>
+          </svg>
+        </div>
+        <transition name="fade">
+          <span v-if="!isCollapse" class="logo-text">Boonya IoT</span>
+        </transition>
       </div>
-      
+
       <el-menu
         :default-active="activeMenu"
         :collapse="isCollapse"
         router
+        class="sidebar-menu"
       >
         <el-menu-item
           v-for="route in menuRoutes"
           :key="route.path"
           :index="route.path"
+          class="menu-item"
         >
-          <el-icon><component :is="route.meta?.icon" /></el-icon>
+          <el-icon class="menu-icon"><component :is="route.meta?.icon" /></el-icon>
           <template #title>{{ route.meta?.title }}</template>
         </el-menu-item>
       </el-menu>
     </el-aside>
-    
+
     <!-- 主内容区 -->
     <el-container>
       <!-- 顶部导航 -->
@@ -32,30 +42,44 @@
             <Fold v-if="!isCollapse" />
             <Expand v-else />
           </el-icon>
+
+          <!-- 面包屑 -->
+          <el-breadcrumb separator="/" class="breadcrumb">
+            <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+            <el-breadcrumb-item v-if="currentTitle">{{ currentTitle }}</el-breadcrumb-item>
+          </el-breadcrumb>
         </div>
-        
+
         <div class="header-right">
-          <!-- 实时告警铃铛：订阅 MQTT alerts/# -->
+          <!-- 实时告警铃铛 -->
           <el-badge :value="alertStore.unreadCount" :hidden="alertStore.unreadCount === 0" :max="99" class="alert-badge">
             <el-icon class="alert-bell" @click="router.push('/alerts')">
               <Bell />
             </el-icon>
           </el-badge>
 
+          <div class="header-divider"></div>
+
           <el-dropdown @command="handleCommand">
-            <span class="user-info">
-              <el-icon><User /></el-icon>
-              {{ userStore.userInfo?.username || '管理员' }}
-            </span>
+            <div class="user-info">
+              <div class="user-avatar">
+                {{ (userStore.userInfo?.username || 'A').charAt(0).toUpperCase() }}
+              </div>
+              <span class="user-name">{{ userStore.userInfo?.username || '管理员' }}</span>
+              <el-icon class="dropdown-arrow"><ArrowDown /></el-icon>
+            </div>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                <el-dropdown-item command="logout" divided>
+                  <el-icon><SwitchButton /></el-icon>
+                  退出登录
+                </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
         </div>
       </el-header>
-      
+
       <!-- 主要内容 -->
       <el-main class="layout-main">
         <router-view />
@@ -82,15 +106,23 @@ const isCollapse = ref(false)
 
 const activeMenu = computed(() => route.path)
 
+// 面包屑标题
+const currentTitle = computed(() => {
+  const matched = route.matched.filter(item => item.meta?.title)
+  const last = matched[matched.length - 1]
+  return last?.meta?.title || ''
+})
+
 const menuRoutes = computed(() => {
-  return router.options.routes.find(r => r.path === '/')?.children || []
+  const children = router.options.routes.find(r => r.path === '/')?.children || []
+  return children.filter((r) => !r.meta?.hidden)
 })
 
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
 }
 
-// 订阅 MQTT alerts/#：收到告警写入 store + 弹通知
+// 订阅 MQTT alerts/#
 let unsubscribeAlerts: (() => void) | null = null
 onMounted(() => {
   unsubscribeAlerts = subscribe(TOPIC_ALERTS, (topic, payload) => {
@@ -123,7 +155,7 @@ const handleCommand = async (command: string) => {
       })
       await userStore.logout()
     } catch {
-      // 用户取消或退出失败，都不处理
+      // 用户取消
     } finally {
       router.push('/login')
     }
@@ -136,10 +168,13 @@ const handleCommand = async (command: string) => {
   height: 100vh;
 }
 
+/* ===== 侧边栏 ===== */
 .layout-aside {
-  background-color: #304156;
-  transition: width 0.3s;
+  background: linear-gradient(180deg, #0a1929 0%, #0d2847 100%);
+  transition: width 0.3s ease;
   overflow-x: hidden;
+  overflow-y: auto;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
 }
 
 .logo {
@@ -147,55 +182,113 @@ const handleCommand = async (command: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 18px;
-  font-weight: bold;
-  background-color: #2b3a4c;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
 }
 
-.el-menu {
+.logo-icon-mini {
+  width: 32px;
+  height: 32px;
+  color: #00d4ff;
+  flex-shrink: 0;
+}
+
+.logo-icon-mini svg {
+  width: 100%;
+  height: 100%;
+}
+
+.logo-text {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #ffffff 0%, #00d4ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+}
+
+.sidebar-menu {
   border-right: none;
-  background-color: #304156;
+  background: transparent !important;
+  padding: 8px 0;
 }
 
 :deep(.el-menu-item) {
-  color: #bfcbd9;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 2px 8px;
+  border-radius: 8px;
+  height: 46px;
+  line-height: 46px;
+  transition: all 0.25s;
 }
 
-:deep(.el-menu-item:hover),
+:deep(.el-menu-item:hover) {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #fff !important;
+}
+
 :deep(.el-menu-item.is-active) {
-  background-color: #263445 !important;
-  color: #409eff !important;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(14, 165, 233, 0.1) 100%) !important;
+  color: #00d4ff !important;
+  box-shadow: inset 3px 0 0 #00d4ff;
 }
 
+.menu-icon {
+  font-size: 18px;
+}
+
+/* ===== 顶部导航 ===== */
 .layout-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #fff;
-  border-bottom: 1px solid #e6e6e6;
+  background: #fff;
+  border-bottom: 1px solid #ebeef5;
   padding: 0 20px;
+  height: 56px;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.06);
+  z-index: 10;
 }
 
 .header-left {
   display: flex;
   align-items: center;
+  gap: 16px;
 }
 
 .collapse-btn {
   font-size: 20px;
   cursor: pointer;
+  color: #5a5e66;
   transition: color 0.3s;
+  padding: 4px;
 }
 
 .collapse-btn:hover {
-  color: #409eff;
+  color: #00d4ff;
+}
+
+.breadcrumb {
+  font-size: 14px;
+}
+
+:deep(.el-breadcrumb__inner.is-link) {
+  color: #97a8be;
+  font-weight: 400;
+}
+
+:deep(.el-breadcrumb__inner) {
+  color: #303133;
+  font-weight: 500;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .alert-badge {
@@ -205,12 +298,21 @@ const handleCommand = async (command: string) => {
 .alert-bell {
   font-size: 20px;
   cursor: pointer;
-  color: #606266;
-  transition: color 0.3s;
+  color: #5a5e66;
+  transition: all 0.3s;
+  padding: 4px;
+  border-radius: 6px;
 }
 
 .alert-bell:hover {
   color: #e6a23c;
+  background: rgba(230, 162, 60, 0.08);
+}
+
+.header-divider {
+  width: 1px;
+  height: 24px;
+  background: #e0e4ea;
 }
 
 .user-info {
@@ -218,10 +320,55 @@ const handleCommand = async (command: string) => {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.25s;
 }
 
+.user-info:hover {
+  background: #f5f7fa;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0d2847 0%, #103a5c 100%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.dropdown-arrow {
+  font-size: 12px;
+  color: #97a8be;
+}
+
+/* ===== 主内容区 ===== */
 .layout-main {
-  background-color: #f0f2f5;
+  background: #f0f2f5;
   padding: 20px;
+  overflow-y: auto;
+}
+
+/* 过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

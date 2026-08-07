@@ -45,10 +45,13 @@
         </el-table-column>
         <el-table-column prop="description" label="描述" show-overflow-tooltip />
         <el-table-column prop="createTime" label="创建时间" width="180" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleView(row)">
               详情
+            </el-button>
+            <el-button v-if="row.status === 'inactive'" link type="success" @click="handleActivate(row)">
+              激活
             </el-button>
             <el-button link type="primary" @click="handleEdit(row)">
               编辑
@@ -111,29 +114,6 @@
       </template>
     </el-dialog>
 
-    <!-- P0-5: 设备详情对话框，调用 getDeviceById 展示完整信息 -->
-    <el-dialog v-model="detailDialogVisible" title="设备详情" width="640px">
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="设备ID">{{ detailForm.deviceId }}</el-descriptions-item>
-        <el-descriptions-item label="设备名称">{{ detailForm.deviceName }}</el-descriptions-item>
-        <el-descriptions-item label="设备类型">{{ detailForm.deviceType }}</el-descriptions-item>
-        <el-descriptions-item label="设备型号">{{ detailForm.model || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="固件版本">{{ detailForm.firmwareVersion || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="getStatusType(detailForm.status)">
-            {{ getStatusText(detailForm.status) }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="设备位置">{{ detailForm.location || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="心跳时间">{{ detailForm.lastHeartbeat || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="描述" :span="2">{{ detailForm.description || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间" :span="2">{{ detailForm.createTime }}</el-descriptions-item>
-      </el-descriptions>
-      <template #footer>
-        <el-button @click="detailDialogVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
-
     <!-- P0-5: 编辑设备状态对话框，调用 updateDeviceStatus -->
     <el-dialog v-model="editDialogVisible" title="编辑设备状态" width="500px">
       <el-form :model="editForm" label-width="100px">
@@ -162,13 +142,14 @@
 // P0-5: handleView/handleEdit 改为打开详情/编辑对话框
 // 注册表单补充 deviceId、location 字段
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getDeviceList, registerDevice, deleteDevice, getDeviceById, updateDeviceStatus } from '@/api/device'
+import { getDeviceList, registerDevice, deleteDevice, updateDeviceStatus, activateDevice } from '@/api/device'
 import type { Device, DeviceRegisterRequest, DeviceQueryParams } from '@/api/device'
 
+const router = useRouter()
 const devices = ref<Device[]>([])
 const dialogVisible = ref(false)
-const detailDialogVisible = ref(false)
 const editDialogVisible = ref(false)
 
 const searchForm = reactive({
@@ -190,9 +171,6 @@ const registerForm = reactive<DeviceRegisterRequest>({
   location: '',
   description: '',
 })
-
-// 详情表单
-const detailForm = ref<Device>({} as Device)
 
 // 编辑表单
 const editForm = reactive({
@@ -256,14 +234,24 @@ const submitRegister = async () => {
   }
 }
 
-// P0-5: 打开详情对话框，调用 getDeviceById 获取完整信息
-const handleView = async (row: Device) => {
+// 详情：路由跳转到设备详情页
+const handleView = (row: Device) => {
+  router.push('/devices/' + row.deviceId)
+}
+
+// 激活设备（仅 inactive 状态）
+const handleActivate = async (row: Device) => {
   try {
-    const data = await getDeviceById(row.id)
-    detailForm.value = data
-    detailDialogVisible.value = true
+    await ElMessageBox.confirm(`确定要激活设备「${row.deviceName}」吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    await activateDevice(row.deviceId)
+    ElMessage.success('激活成功')
+    loadDevices()
   } catch (error) {
-    console.error('Get device error:', error)
+    console.error('Activate device error:', error)
   }
 }
 

@@ -53,8 +53,9 @@
         </el-table-column>
         <el-table-column prop="lastLoginTime" label="最后登录" width="170" />
         <el-table-column prop="createTime" label="创建时间" width="170" />
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="330" fixed="right">
           <template #default="{ row }">
+            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
             <el-button link type="primary" @click="handleAssignRoles(row)">分配角色</el-button>
             <el-button link type="warning" @click="handleResetPassword(row)">重置密码</el-button>
             <el-button link type="danger" @click="handleToggleStatus(row)">
@@ -108,6 +109,28 @@
       </template>
     </el-dialog>
 
+    <!-- 编辑用户对话框（仅修改 realName/email/phone） -->
+    <el-dialog v-model="editDialogVisible" title="编辑用户" width="520px">
+      <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="100px">
+        <el-form-item label="用户名">
+          <el-input :model-value="editForm.username" disabled />
+        </el-form-item>
+        <el-form-item label="真实姓名" prop="realName">
+          <el-input v-model="editForm.realName" placeholder="请输入真实姓名" />
+        </el-form-item>
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="editForm.email" placeholder="请输入邮箱" />
+        </el-form-item>
+        <el-form-item label="手机号" prop="phone">
+          <el-input v-model="editForm.phone" placeholder="请输入手机号" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitEdit">确定</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 分配角色对话框 -->
     <el-dialog v-model="roleDialogVisible" title="分配角色" width="480px">
       <el-form label-width="80px">
@@ -150,13 +173,14 @@ import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
 import {
   getUserList,
   createUser,
+  updateUser,
   updateUserStatus,
   resetPassword,
   assignRoles,
   deleteUser,
   getAllRoles,
 } from '@/api/user'
-import type { UserResponse, UserCreateRequest, RoleResponse } from '@/api/user'
+import type { UserResponse, UserCreateRequest, UserUpdateRequest, RoleResponse } from '@/api/user'
 
 const users = ref<UserResponse[]>([])
 const allRoles = ref<RoleResponse[]>([])
@@ -191,6 +215,21 @@ const createRules = {
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '密码至少6位', trigger: 'blur' },
   ],
+}
+
+// 编辑用户（仅修改 realName/email/phone）
+const editDialogVisible = ref(false)
+const editFormRef = ref<FormInstance>()
+const editForm = reactive<{ id: number; username: string; realName: string; email: string; phone: string }>({
+  id: 0,
+  username: '',
+  realName: '',
+  email: '',
+  phone: '',
+})
+const editRules = {
+  realName: [{ max: 64, message: '长度不能超过64个字符', trigger: 'blur' }],
+  email: [{ type: 'email', message: '请输入正确的邮箱', trigger: 'blur' }],
 }
 
 onMounted(() => {
@@ -251,6 +290,36 @@ const submitCreate = async () => {
       loadUsers()
     } catch (error) {
       console.error('Create user error:', error)
+    }
+  })
+}
+
+// 打开编辑弹窗（仅修改 realName/email/phone）
+const handleEdit = (row: UserResponse) => {
+  editForm.id = row.id
+  editForm.username = row.username
+  editForm.realName = row.realName || ''
+  editForm.email = row.email || ''
+  editForm.phone = row.phone || ''
+  editDialogVisible.value = true
+}
+
+const submitEdit = async () => {
+  if (!editFormRef.value) return
+  await editFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    try {
+      const data: UserUpdateRequest = {
+        realName: editForm.realName,
+        email: editForm.email,
+        phone: editForm.phone,
+      }
+      await updateUser(editForm.id, data)
+      ElMessage.success('更新成功')
+      editDialogVisible.value = false
+      loadUsers()
+    } catch (error) {
+      console.error('Update user error:', error)
     }
   })
 }

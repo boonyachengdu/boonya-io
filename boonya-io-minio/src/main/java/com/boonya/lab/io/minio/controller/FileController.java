@@ -26,22 +26,22 @@ public class FileController {
         return Result.success(fileUrl);
     }
 
-    @DeleteMapping("/{objectName}")
-    @Operation(summary = "删除文件", description = "根据对象名删除MinIO中的文件")
-    public Result<Void> deleteFile(@PathVariable String objectName) {
+    @DeleteMapping
+    @Operation(summary = "删除文件", description = "根据对象名删除MinIO中的文件，对象名通过参数传递以支持含/的多级路径")
+    public Result<Void> deleteFile(@RequestParam String objectName) {
         minioService.deleteFile(objectName);
         return Result.success();
     }
 
-    @GetMapping("/check/{objectName}")
+    @GetMapping("/check")
     @Operation(summary = "检查文件是否存在", description = "检查指定对象名的文件是否存在于MinIO中")
-    public Result<Boolean> checkFileExists(@PathVariable String objectName) {
+    public Result<Boolean> checkFileExists(@RequestParam String objectName) {
         return Result.success(minioService.fileExists(objectName));
     }
 
-    @GetMapping("/{objectName}")
+    @GetMapping("/url")
     @Operation(summary = "获取临时访问URL", description = "生成文件的临时预签名访问URL（默认1小时有效期）")
-    public Result<String> getTemporaryAccessUrl(@PathVariable String objectName) {
+    public Result<String> getTemporaryAccessUrl(@RequestParam String objectName) {
         int expirySeconds = 3600; // 1小时有效期
         String url = minioService.getTemporaryAccessUrl(objectName, expirySeconds);
         return Result.success(url);

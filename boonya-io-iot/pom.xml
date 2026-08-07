@@ -106,6 +106,13 @@
             <version>3.2.7</version>
         </dependency>
 
+        <!-- PostgreSQL 驱动（用于告警持久化 device_alert / 规则持久化 alert_rule，连接 iot_device 库） -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Utils -->
         <dependency>
             <groupId>org.projectlombok</groupId>

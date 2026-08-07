@@ -13,7 +13,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 规则引擎 - 处理设备数据并触发规则
+ * 规则引擎 - 处理设备数据并触发规则。
+ *
+ * <p>内存中保留 {@link ConcurrentHashMap} 用于快速匹配；
+ * 同时通过 {@link AlertRuleMapper} 将规则持久化到 PostgreSQL alert_rule 表，
+ * 启动时从 DB 加载，CRUD 操作同步写 DB。pgJdbcTemplate 未配置时自动降级为纯内存模式。</p>
  */
 @Slf4j
 @Component
@@ -24,12 +28,19 @@ public class RuleEngine {
     private final Map<String, Rule> rules = new ConcurrentHashMap<>();
     // 注入 WebSocket 用于 FORWARD 动作转发
     private final SimpMessagingTemplate websocket;
+    // 注入告警规则持久化层（pgJdbcTemplate 未配置时 mapper 内部自动降级为空操作）
+    private final AlertRuleMapper alertRuleMapper;
 
     /**
-     * 注册规则
+     * 注册规则（同步写入内存与 DB）。
+     * DB 中已存在相同 ruleId 时跳过插入，保证幂等。
      */
     public void registerRule(Rule rule) {
         rules.put(rule.getRuleId(), rule);
+        if (alertRuleMapper.isAvailable()
+                && alertRuleMapper.findByRuleId(rule.getRuleId()).isEmpty()) {
+            alertRuleMapper.insert(toAlertRule(rule));
+        }
         log.info("Rule registered: {} - {}", rule.getRuleId(), rule.getRuleName());
     }
 
@@ -41,7 +52,7 @@ public class RuleEngine {
     }
 
     /**
-     * 启用规则
+     * 启用规则（同步 DB）
      */
     public boolean enableRule(String ruleId) {
         Rule rule = rules.get(ruleId);
@@ -49,12 +60,13 @@ public class RuleEngine {
             return false;
         }
         rule.setEnabled(true);
+        alertRuleMapper.updateEnabled(ruleId, true);
         log.info("Rule enabled: {}", ruleId);
         return true;
     }
 
     /**
-     * 禁用规则
+     * 禁用规则（同步 DB）
      */
     public boolean disableRule(String ruleId) {
         Rule rule = rules.get(ruleId);
@@ -62,16 +74,18 @@ public class RuleEngine {
             return false;
         }
         rule.setEnabled(false);
+        alertRuleMapper.updateEnabled(ruleId, false);
         log.info("Rule disabled: {}", ruleId);
         return true;
     }
 
     /**
-     * 删除规则
+     * 删除规则（同步 DB）
      */
     public boolean deleteRule(String ruleId) {
         Rule removed = rules.remove(ruleId);
         if (removed != null) {
+            alertRuleMapper.deleteByRuleId(ruleId);
             log.info("Rule deleted: {}", ruleId);
             return true;
         }
@@ -259,9 +273,37 @@ public class RuleEngine {
     }
 
     /**
-     * 初始化默认规则
+     * 初始化默认规则：
+     * - DB 可用且非空：从 alert_rule 表加载规则到内存
+     * - DB 可用且为空：注册默认规则（registerRule 同步写入 DB）
+     * - DB 不可用：保持原纯内存模式
      */
     public void initDefaultRules() {
+        boolean dbAvailable = alertRuleMapper.isAvailable();
+        int dbCount = dbAvailable ? alertRuleMapper.count() : 0;
+
+        if (dbAvailable && dbCount > 0) {
+            log.info("Loading {} rules from alert_rule table", dbCount);
+            rules.clear();
+            for (AlertRule ar : alertRuleMapper.findAll()) {
+                rules.put(ar.getRuleId(), toRule(ar));
+            }
+        } else {
+            if (dbAvailable) {
+                log.info("alert_rule table empty, inserting default rules");
+            }
+            // DB 不可用时 registerRule 内部的 DB 操作为 no-op，等价于纯内存注册
+            buildDefaultRules().forEach(this::registerRule);
+        }
+        log.info("Default rules initialized, total: {}", rules.size());
+    }
+
+    /**
+     * 构造默认规则列表（不直接写入内存，由调用方决定写入路径）
+     */
+    private List<Rule> buildDefaultRules() {
+        List<Rule> list = new ArrayList<>();
+
         // 温度过高告警规则
         Rule tempAlertRule = new Rule();
         tempAlertRule.setRuleId("temp_high_alert");
@@ -273,8 +315,7 @@ public class RuleEngine {
         tempAlertRule.setActionType("ALERT");
         tempAlertRule.setEnabled(true);
         tempAlertRule.setPriority(1);
-
-        registerRule(tempAlertRule);
+        list.add(tempAlertRule);
 
         // 温度过低告警规则
         Rule tempLowRule = new Rule();
@@ -287,9 +328,51 @@ public class RuleEngine {
         tempLowRule.setActionType("ALERT");
         tempLowRule.setEnabled(true);
         tempLowRule.setPriority(1);
+        list.add(tempLowRule);
 
-        registerRule(tempLowRule);
+        return list;
+    }
 
-        log.info("Default rules initialized");
+    /**
+     * 内存 Rule → 持久化 AlertRule（仅映射可持久化的核心字段）。
+     * Rule 中的多指标列表 / actionConfig / priority / description 不入库。
+     */
+    private AlertRule toAlertRule(Rule rule) {
+        AlertRule ar = new AlertRule();
+        ar.setRuleId(rule.getRuleId());
+        ar.setRuleName(rule.getRuleName());
+        ar.setDeviceId(null); // Rule 无 deviceId 概念，留空表示全局规则
+        ar.setMetric(rule.getMetric());
+        ar.setOperator(rule.getOperator());
+        ar.setThreshold(rule.getThreshold());
+        ar.setLogic(rule.getLogicOperator());
+        ar.setAction(rule.getActionType());
+        ar.setSeverity("WARNING"); // Rule 无 severity 字段，默认 WARNING
+        ar.setCooldownMs((long) rule.getCooldownSeconds() * 1000L);
+        ar.setEnabled(rule.isEnabled());
+        return ar;
+    }
+
+    /**
+     * 持久化 AlertRule → 内存 Rule。
+     * 多指标 / actionConfig / priority 等运行期字段不在 DB 中，使用默认值。
+     */
+    private Rule toRule(AlertRule ar) {
+        Rule rule = new Rule();
+        rule.setRuleId(ar.getRuleId());
+        rule.setRuleName(ar.getRuleName());
+        rule.setMetric(ar.getMetric());
+        rule.setOperator(ar.getOperator());
+        if (ar.getThreshold() != null) {
+            rule.setThreshold(ar.getThreshold());
+        }
+        rule.setLogicOperator(ar.getLogic());
+        rule.setActionType(ar.getAction());
+        if (ar.getCooldownMs() != null) {
+            rule.setCooldownSeconds((int) (ar.getCooldownMs() / 1000L));
+        }
+        rule.setEnabled(ar.getEnabled() == null || ar.getEnabled());
+        rule.setPriority(1);
+        return rule;
     }
 }
